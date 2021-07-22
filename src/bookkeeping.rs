@@ -12,6 +12,7 @@ pub struct Amount(i32);
 
 impl Amount {
     pub fn new(amount: i32) -> Self {
+        // NOTE: abs() does not panic in release mode for i32::MIN, instead it returns i32::MIN
         Self (amount.abs())
     }
 }
