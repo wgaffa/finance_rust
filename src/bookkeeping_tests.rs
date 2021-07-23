@@ -32,8 +32,18 @@ fn new_credit_test(amount: u32, expected: u32) {
 
 #[test_case(50, |x| x * 2 => 100)]
 #[test_case(u32::MAX, |x| x + 1 => panics "overflow")]
-fn transaction_map<F: Fn(u32) -> u32>(amount: u32, f: F) -> u32 {
+fn transaction_debit_map<F: Fn(u32) -> u32>(amount: u32, f: F) -> u32 {
     let actual = Transaction::debit(amount);
+
+    let actual = actual.map(f);
+
+    actual.amount()
+}
+
+#[test_case(50, |x| x * 2 => 100)]
+#[test_case(u32::MAX, |x| x + 1 => panics "overflow")]
+fn transaction_credit_map<F: Fn(u32) -> u32>(amount: u32, f: F) -> u32 {
+    let actual = Transaction::credit(amount);
 
     let actual = actual.map(f);
 
