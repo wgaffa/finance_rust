@@ -1,3 +1,4 @@
+use std::iter::Sum;
 use std::marker::PhantomData;
 
 /// Entry type for bookkeeping
@@ -58,6 +59,30 @@ impl Transaction::<Credit> {
             amount,
             phantom: PhantomData,
         }
+    }
+}
+
+impl<'a, T> Sum<&'a Self> for Transaction<T> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = &'a Self>
+    {
+        iter.fold(Self { amount: 0, phantom: PhantomData }, |acc, el| Self {
+            amount: acc.amount + el.amount,
+            phantom: PhantomData,
+        })
+    }
+}
+
+impl<'a, T> Sum for Transaction<T> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(Self { amount: 0, phantom: PhantomData }, |acc, el| Self {
+            amount: acc.amount + el.amount,
+            phantom: PhantomData,
+        })
     }
 }
 

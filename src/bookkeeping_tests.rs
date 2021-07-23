@@ -50,3 +50,28 @@ fn transaction_credit_map<F: Fn(u32) -> u32>(amount: u32, f: F) -> u32 {
     actual.amount()
 }
 
+#[test]
+fn sum_trait_iter() {
+    let vec = vec![
+        Transaction::debit(50),
+        Transaction::debit(20),
+        Transaction::debit(30),
+    ];
+
+    let actual: Transaction::<Debit> = vec.iter().sum();
+
+    assert_eq!(actual.amount, 100);
+}
+
+#[test]
+fn sum_trait_into_iter() {
+    let vec = vec![
+        Transaction::debit(50),
+        Transaction::debit(20),
+        Transaction::debit(30),
+    ];
+
+    let actual: Transaction::<Debit> = vec.into_iter().sum();
+
+    assert_eq!(actual.amount, 100);
+}
