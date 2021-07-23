@@ -33,6 +33,16 @@ impl Transaction::<Debit> {
             phantom: PhantomData,
         }
     }
+
+    pub fn map<F>(self, f: F) -> Self
+    where
+        F: Fn(u32) -> u32
+    {
+        Self {
+            amount: f(self.amount),
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl Transaction::<Credit> {
@@ -46,6 +56,16 @@ impl Transaction::<Credit> {
     pub fn credit(amount: u32) -> Self {
         Self {
             amount,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn map<F>(self, f: F) -> Self
+    where
+        F: Fn(u32) -> u32
+    {
+        Self {
+            amount: f(self.amount),
             phantom: PhantomData,
         }
     }
