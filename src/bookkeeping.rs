@@ -68,9 +68,6 @@ impl Transaction {
     }
 }
 
-fn out_of_debt(e: Entry) {
-}
-
 #[cfg(test)]
 #[path ="bookkeeping_tests.rs"]
 mod bookkeeping_tests;
