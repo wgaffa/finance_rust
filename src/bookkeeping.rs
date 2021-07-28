@@ -2,11 +2,6 @@ use std::any::Any;
 use std::iter::Sum;
 use std::marker::PhantomData;
 
-pub enum Entry {
-    Debit,
-    Credit,
-}
-
 #[derive(Debug, PartialEq)]
 pub struct Debit;
 
@@ -102,19 +97,33 @@ impl<'a, T> Sum for Transaction<T> {
     }
 }
 
+/// Split a vector of Any trait objects into its Debit and Credit
+///
+/// This returns a tuple where the first one is the debits and second is credits
+///
+/// # Panics
+/// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
 pub fn split(collection: Vec<Box<dyn Any>>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
     let (debits, credits): (Vec<Box<dyn Any>>, Vec<Box<dyn Any>>) =
         collection
         .into_iter()
-        .partition(|x| x.as_ref().is::<Transaction<Debit>>());
+        .partition(|x| x.is::<Transaction<Debit>>());
 
+    // Since we split the transactions on the Debit types we can just unwrap the debits downcast.
+    // But credits may contain malicious types and we therefore inspect the elements and panics if
+    // it's not a credit type. Otherwise we just move on.
     let debits = debits
         .into_iter()
         .map(|x| *x.downcast::<Transaction<Debit>>().unwrap())
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
-        .map(|x| *x.downcast::<Transaction<Credit>>().unwrap())
+        .map(|x| {
+            match x.downcast::<Transaction<Credit>>() {
+                Ok(c) => *c,
+                Err(_e) => panic!("Trying to split trait objects of incompatible types"),
+            }
+        })
         .collect::<Vec<Transaction<Credit>>>();
 
     (debits, credits)

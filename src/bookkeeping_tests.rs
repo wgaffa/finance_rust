@@ -84,35 +84,23 @@ fn split_transactions() {
         Box::new(Transaction::debit(50)),
     ];
 
-    let t: Box<dyn TransactionMarker> = Box::new(Transaction::debit(30));
-
-    // let t = t.downcast::<dyn Any>();
-
-    // let t: &Transaction<Credit> = vec[1].as_any().downcast_ref::<Transaction<Credit>>().unwrap();
-
-    // let tid = vec[1].as_any().type_id();
-    // let com = TypeId::of::<Transaction<Credit>>();
-
-    // assert_eq!(tid, com);
-
     let (debits, credits) = split(vec);
-    // let (debits, credits): (Vec<Box<dyn TransactionMarker>>, Vec<Box<dyn TransactionMarker>>) =
-        // vec
-            // .into_iter()
-            // .partition(|x| x.as_ref().as_any().is::<Transaction<Debit>>());
-
-    // let debits = debits
-        // .iter()
-        // .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap())
-        // .collect::<Vec<&Transaction<Debit>>>();
-    // let credits = credits
-        // .iter()
-        // .map(|x| x.as_any().downcast_ref::<Transaction<Credit>>().unwrap())
-        // .collect::<Vec<&Transaction<Credit>>>();
 
     let debit_sum = debits.into_iter().sum::<Transaction<Debit>>();
     let credit_sum = credits.into_iter().sum::<Transaction<Credit>>();
 
     assert_eq!(debit_sum.amount, 100);
     assert_eq!(credit_sum.amount, 20);
+}
+
+#[test]
+#[should_panic(expected = "incompatible types")]
+fn split_transaction_panics_on_wrong_types() {
+    let vec: Vec<Box<dyn Any>> = vec![
+        Box::new(Transaction::debit(50)),
+        Box::new(Transaction::credit(20)),
+        Box::new(5),
+    ];
+
+    let (_debits, _credits) = split(vec);
 }
