@@ -2,43 +2,105 @@
 use super::*;
 
 use test_case::test_case;
+use std::any::{Any, TypeId};
 
-#[test]
-fn new_debit_test() {
-    let actual = Transaction::debit(Amount::new(500));
+fn is_debit_transaction<T: ?Sized + Any>(_t : &T) -> bool {
+    TypeId::of::<Transaction<Debit>>() == TypeId::of::<T>()
+}
 
-    assert_eq!(actual.entry, Entry::Debit);
-    assert_eq!(actual.amount.0, 500);
+fn is_credit_transaction<T: ?Sized + Any>(_t : &T) -> bool {
+    TypeId::of::<Transaction<Credit>>() == TypeId::of::<T>()
 }
 
 #[test_case(100, 100)]
-#[test_case(-300, 300)]
-#[test_case(i32::MIN, 5 => panics "attempt to negate with overflow")]
-fn new_credit_test(amount: i32, expected: i32) {
-    let actual = Transaction::credit(Amount::new(amount));
+#[test_case(u32::MAX, 4294967295)]
+fn new_debit_test(amount: u32, expected: u32) {
+    let actual = Transaction::debit(amount);
 
-    assert_eq!(actual.entry, Entry::Credit);
-    assert_eq!(actual.amount.0, expected);
+    assert!(is_debit_transaction(&actual));
+    assert_eq!(actual.amount, expected);
 }
 
-#[test_case(Amount::new(100), 100)]
-#[test_case(Amount::new(i32::MAX), i32::MAX)]
-#[test_case(Amount::new(-200), 200)]
-fn debit_to_numeral(amount: AmountType, expected: i32) {
-    let transaction = Transaction::debit(amount);
+#[test_case(100, 100)]
+#[test_case(u32::MAX, 4294967295)]
+fn new_credit_test(amount: u32, expected: u32) {
+    let actual = Transaction::credit(amount);
 
-    let actual = transaction.to_numeral();
-
-    assert_eq!(actual, expected);
+    assert!(is_credit_transaction(&actual));
+    assert_eq!(actual.amount, expected);
 }
 
-#[test_case(Amount::new(100), -100)]
-#[test_case(Amount::new(i32::MAX), -i32::MAX)]
-#[test_case(Amount::new(-200), -200)]
-fn credit_to_numeral(amount: AmountType, expected: i32) {
-    let transaction = Transaction::credit(amount);
+#[test_case(50, |x| x * 2 => 100)]
+#[test_case(u32::MAX, |x| x + 1 => panics "overflow")]
+fn transaction_debit_map<F: Fn(u32) -> u32>(amount: u32, f: F) -> u32 {
+    let actual = Transaction::debit(amount);
 
-    let actual = transaction.to_numeral();
+    let actual = actual.map(f);
 
-    assert_eq!(actual, expected);
+    actual.amount()
+}
+
+#[test_case(50, |x| x * 2 => 100)]
+#[test_case(u32::MAX, |x| x + 1 => panics "overflow")]
+fn transaction_credit_map<F: Fn(u32) -> u32>(amount: u32, f: F) -> u32 {
+    let actual = Transaction::credit(amount);
+
+    let actual = actual.map(f);
+
+    actual.amount()
+}
+
+#[test]
+fn sum_trait_iter() {
+    let vec = vec![
+        Transaction::debit(50),
+        Transaction::debit(20),
+        Transaction::debit(30),
+    ];
+
+    let actual: Transaction::<Debit> = vec.iter().sum();
+
+    assert_eq!(actual.amount, 100);
+}
+
+#[test]
+fn sum_trait_into_iter() {
+    let vec = vec![
+        Transaction::debit(50),
+        Transaction::debit(20),
+        Transaction::debit(30),
+    ];
+
+    let actual: Transaction::<Debit> = vec.into_iter().sum();
+
+    assert_eq!(actual.amount, 100);
+}
+
+#[test]
+fn split_transactions() {
+    let vec: Vec<Box<dyn Any>> = vec![
+        Box::new(Transaction::debit(50)),
+        Box::new(Transaction::credit(20)),
+        Box::new(Transaction::debit(50)),
+    ];
+
+    let (debits, credits) = split(vec);
+
+    let debit_sum = debits.into_iter().sum::<Transaction<Debit>>();
+    let credit_sum = credits.into_iter().sum::<Transaction<Credit>>();
+
+    assert_eq!(debit_sum.amount, 100);
+    assert_eq!(credit_sum.amount, 20);
+}
+
+#[test]
+#[should_panic(expected = "incompatible types")]
+fn split_transaction_panics_on_wrong_types() {
+    let vec: Vec<Box<dyn Any>> = vec![
+        Box::new(Transaction::debit(50)),
+        Box::new(Transaction::credit(20)),
+        Box::new(5),
+    ];
+
+    let (_debits, _credits) = split(vec);
 }
