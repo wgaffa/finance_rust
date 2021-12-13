@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use enum_iterator::IntoEnumIterator;
 
 use crate::bookkeeping::TransactionMarker;
 
@@ -49,13 +50,69 @@ impl AccountName {
     }
 }
 
-#[derive(Debug)]
-enum AccountElement {
+#[derive(Debug, Clone, IntoEnumIterator)]
+pub enum AccountElement {
     Asset,
     Liability,
     Equity,
     Income,
     Expenses,
+}
+
+impl AccountElement {
+    pub fn debits() -> DebitIter {
+        DebitIter::new()
+    }
+
+    pub fn credits() -> CreditIter {
+        CreditIter::new()
+    }
+}
+
+pub struct DebitIter {
+    debits: Vec<AccountElement>
+}
+
+pub struct CreditIter {
+    credits: Vec<AccountElement>
+}
+
+impl DebitIter {
+    fn new() -> Self {
+        Self {
+            debits: vec![AccountElement::Asset, AccountElement::Expenses],
+        }
+    }
+}
+
+impl CreditIter {
+    fn new() -> Self {
+        Self {
+            credits: vec![
+                AccountElement::Liability,
+                AccountElement::Equity,
+                AccountElement::Income,
+            ],
+        }
+    }
+}
+
+impl IntoIterator for DebitIter {
+    type Item = AccountElement;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+	fn into_iter(self) -> Self::IntoIter {
+    	self.debits.into_iter()
+	}
+}
+
+impl IntoIterator for CreditIter {
+    type Item = AccountElement;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+	fn into_iter(self) -> Self::IntoIter {
+    	self.credits.into_iter()
+	}
 }
 
 #[derive(Debug)]
@@ -75,13 +132,43 @@ pub struct Journal {
     entries: Vec<JournalEntry>,
 }
 
+impl Journal {
+    pub fn new(date: Date<Utc>) -> Self {
+        Self {
+            details: EntryDetails {
+                date,
+                description: None
+            },
+            entries: Vec::new(),
+        }
+    }
+
+    pub fn set_description<T: Into<String>>(&mut self, description: T) {
+        self.details.description = Some(description.into());
+    }
+
+    pub fn description(&self) -> Option<&String> {
+        self.details.description.as_ref()
+    }
+
+    pub fn push(&mut self, entry: JournalEntry) {
+        self.entries.push(entry);
+    }
+
+    pub fn as_slice(&self) -> &[JournalEntry] {
+        &self.entries.as_slice()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &JournalEntry> {
+        self.entries.iter()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     use test_case::test_case;
-
-    use crate::bookkeeping::Transaction;
 
 	#[test_case("No leading" => Some(AccountName(String::from("No leading"))))]
 	#[test_case("   Leading" => Some(AccountName(String::from("Leading"))))]
@@ -94,15 +181,6 @@ mod test {
 
 	#[test]
 	fn simple() {
-    	let account = Account {
-        	name: AccountName::new("Test").unwrap(),
-        	number: AccountNumber(54),
-        	element: AccountElement::Income,
-    	};
-
-    	let _actual = JournalEntry {
-        	account,
-        	transaction: Box::new(Transaction::debit(50)),
-    	};
+    	// Use this space to experiment with some ideas
 	}
 }
