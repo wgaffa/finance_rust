@@ -35,16 +35,16 @@ impl std::fmt::Display for AccountNumber {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountName(String);
 
 impl AccountName {
     pub fn new<T: AsRef<str>>(name: T) -> Option<Self> {
         let name = name.as_ref().trim().to_owned();
         if name.is_empty() {
-            Some(AccountName(name))
-        } else {
             None
+        } else {
+            Some(AccountName(name))
         }
     }
 }
@@ -79,7 +79,18 @@ pub struct Journal {
 mod test {
     use super::*;
 
+    use test_case::test_case;
+
     use crate::bookkeeping::Transaction;
+
+	#[test_case("No leading" => Some(AccountName(String::from("No leading"))))]
+	#[test_case("   Leading" => Some(AccountName(String::from("Leading"))))]
+	#[test_case("Trailing\t" => Some(AccountName(String::from("Trailing"))))]
+	#[test_case("\n Both \n" => Some(AccountName(String::from("Both"))))]
+	#[test_case("\n  \n" => None)]
+	fn account_name_new(input: &str) -> Option<AccountName> {
+		AccountName::new(input)
+	}
 
 	#[test]
 	fn simple() {
