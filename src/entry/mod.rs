@@ -151,6 +151,10 @@ impl Journal {
         self.details.description.as_ref()
     }
 
+    pub fn date(&self) -> &Date<Utc> {
+        &self.details.date
+    }
+
     pub fn push(&mut self, entry: JournalEntry) {
         self.entries.push(entry);
     }
