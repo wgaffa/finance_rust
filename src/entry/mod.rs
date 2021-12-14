@@ -160,7 +160,7 @@ impl Journal {
     }
 
     pub fn as_slice(&self) -> &[JournalEntry] {
-        &self.entries.as_slice()
+        self.entries.as_slice()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &JournalEntry> {
