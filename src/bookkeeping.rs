@@ -18,6 +18,18 @@ impl<T: 'static> TransactionMarker for Transaction<T> {
     }
 }
 
+impl TransactionMarker for Debit {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl TransactionMarker for Credit {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 /// Data for a single transaction holding the entry type and amount
 #[derive(Debug, PartialEq)]
 pub struct Transaction<T> {

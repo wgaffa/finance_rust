@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
-use crate::bookkeeping::TransactionMarker;
+use crate::bookkeeping::{TransactionMarker, Transaction, Debit, Credit};
 
 #[derive(Debug)]
 struct EntryDetails {
@@ -45,7 +45,7 @@ impl std::fmt::Display for AccountNumber {
 /// use personal_finance::entry::AccountName;
 ///
 /// let name = AccountName::new("  My Bank Account\n");
-/// assert_eq!(name, Some("My Bank Account"));
+/// assert_eq!(name.unwrap(), "My Bank Account");
 ///
 /// let name = AccountName::new("    ");
 /// assert_eq!(name, None);
@@ -188,6 +188,29 @@ pub struct JournalEntry {
     transaction: Box<dyn TransactionMarker>,
 }
 
+impl JournalEntry {
+    /// Returns a reference to the [Account] that is affected by this transaction
+    pub fn account(&self) -> &Account {
+        &self.account
+    }
+
+	/// Get the debit transaction for entry.
+	///
+	/// If this is not a debit entry, None is returned, otherwise
+	/// Some(&Transaction<Debit>>) is returned.
+    pub fn debit(&self) -> Option<&Transaction<Debit>> {
+        self.transaction.as_any().downcast_ref()
+    }
+
+	/// Get the credit transaction for entry.
+	///
+	/// If this is not a credit entry, None is returned, otherwise
+	/// Some(&Transaction<Credit>>) is returned.
+    pub fn credit(&self) -> Option<&Transaction<Credit>> {
+        self.transaction.as_any().downcast_ref()
+    }
+}
+
 /// Journal is an entry into the bookkeeping.
 ///
 /// This describes which accounts is being debited and which account is being credited
@@ -254,6 +277,45 @@ mod test {
 		AccountName::new(input)
 	}
 
+	#[test_case(Transaction::debit(50), Some(Transaction::debit(50)))]
+	#[test_case(Transaction::credit(50), None)]
+	fn journal_entry_debit<T>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
+	where
+    	T: TransactionMarker
+    {
+    	let account = Account {
+        	name: AccountName(String::from("Test")),
+        	number: AccountNumber(54),
+        	element: AccountElement::Asset,
+    	};
+
+		let actual = JournalEntry {
+    		account,
+    		transaction: Box::new(tx),
+		};
+
+		assert_eq!(actual.debit(), expected.as_ref());
+	}
+
+	#[test_case(Transaction::credit(50), Some(Transaction::credit(50)))]
+	#[test_case(Transaction::debit(50), None)]
+	fn journal_entry_credit<T>(tx: Transaction<T>, expected: Option<Transaction<Credit>>)
+	where
+    	T: TransactionMarker
+    {
+    	let account = Account {
+        	name: AccountName(String::from("Test")),
+        	number: AccountNumber(54),
+        	element: AccountElement::Asset,
+    	};
+
+		let actual = JournalEntry {
+    		account,
+    		transaction: Box::new(tx),
+		};
+
+		assert_eq!(actual.credit(), expected.as_ref());
+	}
 	#[test]
 	fn simple() {
     	// Use this space to experiment with some ideas
