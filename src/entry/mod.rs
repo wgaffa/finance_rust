@@ -4,15 +4,17 @@ use enum_iterator::IntoEnumIterator;
 use crate::bookkeeping::TransactionMarker;
 
 #[derive(Debug)]
-pub struct EntryDetails {
+struct EntryDetails {
     date: Date<Utc>,
     description: Option<String>,
 }
 
+/// An account number to identify an account.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountNumber(u32);
 
 impl AccountNumber {
+    /// Create a new [AccountNumber] with a positive integer
     pub fn new(value: u32) -> Self {
         Self(value)
     }
@@ -36,10 +38,26 @@ impl std::fmt::Display for AccountNumber {
     }
 }
 
+/// An account name is a trimmed non-empty string.
+///
+/// # Examples
+/// ```
+/// use personal_finance::entry::AccountName;
+///
+/// let name = AccountName::new("  My Bank Account\n");
+/// assert_eq!(name, Some("My Bank Account"));
+///
+/// let name = AccountName::new("    ");
+/// assert_eq!(name, None);
+/// ```
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountName(String);
 
 impl AccountName {
+    /// Create a new AccountName
+    ///
+    /// This trims and returns Some(AccountName) if it is not an empty string,
+    /// otherwise it return None.
     pub fn new<T: AsRef<str>>(name: T) -> Option<Self> {
         let name = name.as_ref().trim().to_owned();
         if name.is_empty() {
@@ -48,8 +66,39 @@ impl AccountName {
             Some(AccountName(name))
         }
     }
+
+	/// Move the inner string out of AccountName thus consuming it
+    pub fn into_inner(self) -> String {
+        self.0
+    }
 }
 
+impl PartialEq<String> for AccountName {
+    fn eq(&self, other: &String) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<&str> for AccountName {
+    fn eq(&self, other: &&str) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialOrd<String> for AccountName {
+    fn partial_cmp(&self, other: &String) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
+impl PartialOrd<&str> for AccountName {
+    fn partial_cmp(&self, other: &&str) -> Option<std::cmp::Ordering> {
+        self.0.as_str().partial_cmp(*other)
+    }
+}
+
+/// These are the different types of an Account can be associated with,
+/// also called elements.
 #[derive(Debug, Clone, IntoEnumIterator)]
 pub enum AccountElement {
     Asset,
@@ -60,19 +109,29 @@ pub enum AccountElement {
 }
 
 impl AccountElement {
+    /// Return an iterator that iterates over all elements that are
+    /// considered to be debit elements.
+    ///
+    /// These are Asset and Expenses.
     pub fn debits() -> DebitIter {
         DebitIter::new()
     }
 
+    /// Return an iterator that iterates over all elements that are
+    /// considered to be credit elements.
+    ///
+    /// These are Liability, Equity and Income.
     pub fn credits() -> CreditIter {
         CreditIter::new()
     }
 }
 
+/// Iterates over all debit elements.
 pub struct DebitIter {
     debits: Vec<AccountElement>
 }
 
+/// Iterates over all credit elements.
 pub struct CreditIter {
     credits: Vec<AccountElement>
 }
@@ -122,12 +181,24 @@ pub struct Account {
     element: AccountElement,
 }
 
+/// This describes a "line" in a journal and notes one account being affected
+/// with a debit or credit transaction.
 pub struct JournalEntry {
     account: Account,
     transaction: Box<dyn TransactionMarker>,
 }
 
-pub struct Journal {
+/// Journal is an entry into the bookkeeping.
+///
+/// This describes which accounts is being debited and which account is being credited
+/// as well as the date and a description of the journal.
+///
+/// From https://www.beginner-bookkeeping.com/bookkeeping-terms.html
+/// > An entry that is made into the accounts utilizing double entry bookkeeping to make
+/// > an adjustment to the accounts such as if a correction has to be made.
+/// > The journal describes which account is being debited and which account is being
+/// > credited, the date, the reason for the journal and a reference.
+pub struct Journal{
     details: EntryDetails,
     entries: Vec<JournalEntry>,
 }
