@@ -316,8 +316,4 @@ mod test {
 
 		assert_eq!(actual.credit(), expected.as_ref());
 	}
-	#[test]
-	fn simple() {
-    	// Use this space to experiment with some ideas
-	}
 }
