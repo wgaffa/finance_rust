@@ -1,14 +1,14 @@
 #[cfg(test)]
 use super::*;
 
-use test_case::test_case;
 use std::any::{Any, TypeId};
+use test_case::test_case;
 
-fn is_debit_transaction<T: ?Sized + Any>(_t : &T) -> bool {
+fn is_debit_transaction<T: ?Sized + Any>(_t: &T) -> bool {
     TypeId::of::<Transaction<Debit>>() == TypeId::of::<T>()
 }
 
-fn is_credit_transaction<T: ?Sized + Any>(_t : &T) -> bool {
+fn is_credit_transaction<T: ?Sized + Any>(_t: &T) -> bool {
     TypeId::of::<Transaction<Credit>>() == TypeId::of::<T>()
 }
 
@@ -58,7 +58,7 @@ fn sum_trait_iter() {
         Transaction::debit(30),
     ];
 
-    let actual: Transaction::<Debit> = vec.iter().sum();
+    let actual: Transaction<Debit> = vec.iter().sum();
 
     assert_eq!(actual.amount, 100);
 }
@@ -71,7 +71,7 @@ fn sum_trait_into_iter() {
         Transaction::debit(30),
     ];
 
-    let actual: Transaction::<Debit> = vec.into_iter().sum();
+    let actual: Transaction<Debit> = vec.into_iter().sum();
 
     assert_eq!(actual.amount, 100);
 }

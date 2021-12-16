@@ -44,7 +44,7 @@ impl<T> Transaction<T> {
 
     pub fn map<F>(self, f: F) -> Self
     where
-        F: Fn(u32) -> u32
+        F: Fn(u32) -> u32,
     {
         Self {
             amount: f(self.amount),
@@ -53,7 +53,7 @@ impl<T> Transaction<T> {
     }
 }
 
-impl Transaction::<Debit> {
+impl Transaction<Debit> {
     /// Create a new debit transaction
     ///
     /// ```
@@ -69,7 +69,7 @@ impl Transaction::<Debit> {
     }
 }
 
-impl Transaction::<Credit> {
+impl Transaction<Credit> {
     /// Create a new credit transaction
     ///
     /// ```
@@ -88,12 +88,18 @@ impl Transaction::<Credit> {
 impl<'a, T> Sum<&'a Self> for Transaction<T> {
     fn sum<I>(iter: I) -> Self
     where
-        I: Iterator<Item = &'a Self>
+        I: Iterator<Item = &'a Self>,
     {
-        iter.fold(Self { amount: 0, phantom: PhantomData }, |acc, el| Self {
-            amount: acc.amount + el.amount,
-            phantom: PhantomData,
-        })
+        iter.fold(
+            Self {
+                amount: 0,
+                phantom: PhantomData,
+            },
+            |acc, el| Self {
+                amount: acc.amount + el.amount,
+                phantom: PhantomData,
+            },
+        )
     }
 }
 
@@ -102,10 +108,16 @@ impl<'a, T> Sum for Transaction<T> {
     where
         I: Iterator<Item = Self>,
     {
-        iter.fold(Self { amount: 0, phantom: PhantomData }, |acc, el| Self {
-            amount: acc.amount + el.amount,
-            phantom: PhantomData,
-        })
+        iter.fold(
+            Self {
+                amount: 0,
+                phantom: PhantomData,
+            },
+            |acc, el| Self {
+                amount: acc.amount + el.amount,
+                phantom: PhantomData,
+            },
+        )
     }
 }
 
@@ -117,8 +129,7 @@ impl<'a, T> Sum for Transaction<T> {
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
 pub fn split(collection: Vec<Box<dyn Any>>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
     #[allow(clippy::type_complexity)]
-    let (debits, credits): (Vec<Box<dyn Any>>, Vec<Box<dyn Any>>) =
-        collection
+    let (debits, credits): (Vec<Box<dyn Any>>, Vec<Box<dyn Any>>) = collection
         .into_iter()
         .partition(|x| x.is::<Transaction<Debit>>());
 
@@ -131,11 +142,9 @@ pub fn split(collection: Vec<Box<dyn Any>>) -> (Vec<Transaction<Debit>>, Vec<Tra
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
-        .map(|x| {
-            match x.downcast::<Transaction<Credit>>() {
-                Ok(c) => *c,
-                Err(_e) => panic!("Trying to split trait objects of incompatible types"),
-            }
+        .map(|x| match x.downcast::<Transaction<Credit>>() {
+            Ok(c) => *c,
+            Err(_e) => panic!("Trying to split trait objects of incompatible types"),
         })
         .collect::<Vec<Transaction<Credit>>>();
 
@@ -143,5 +152,5 @@ pub fn split(collection: Vec<Box<dyn Any>>) -> (Vec<Transaction<Debit>>, Vec<Tra
 }
 
 #[cfg(test)]
-#[path ="bookkeeping_tests.rs"]
+#[path = "bookkeeping_tests.rs"]
 mod bookkeeping_tests;

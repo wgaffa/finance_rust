@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
-use crate::bookkeeping::{TransactionMarker, Transaction, Debit, Credit};
+use crate::bookkeeping::{Credit, Debit, Transaction, TransactionMarker};
 
 #[derive(Debug)]
 struct EntryDetails {
@@ -67,7 +67,7 @@ impl AccountName {
         }
     }
 
-	/// Move the inner string out of AccountName thus consuming it
+    /// Move the inner string out of AccountName thus consuming it
     pub fn into_inner(self) -> String {
         self.0
     }
@@ -128,12 +128,12 @@ impl AccountElement {
 
 /// Iterates over all debit elements.
 pub struct DebitIter {
-    debits: Vec<AccountElement>
+    debits: Vec<AccountElement>,
 }
 
 /// Iterates over all credit elements.
 pub struct CreditIter {
-    credits: Vec<AccountElement>
+    credits: Vec<AccountElement>,
 }
 
 impl DebitIter {
@@ -160,18 +160,18 @@ impl IntoIterator for DebitIter {
     type Item = AccountElement;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
-	fn into_iter(self) -> Self::IntoIter {
-    	self.debits.into_iter()
-	}
+    fn into_iter(self) -> Self::IntoIter {
+        self.debits.into_iter()
+    }
 }
 
 impl IntoIterator for CreditIter {
     type Item = AccountElement;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
-	fn into_iter(self) -> Self::IntoIter {
-    	self.credits.into_iter()
-	}
+    fn into_iter(self) -> Self::IntoIter {
+        self.credits.into_iter()
+    }
 }
 
 #[derive(Debug)]
@@ -194,18 +194,18 @@ impl JournalEntry {
         &self.account
     }
 
-	/// Get the debit transaction for entry.
-	///
-	/// If this is not a debit entry, None is returned, otherwise
-	/// Some(&Transaction<Debit>>) is returned.
+    /// Get the debit transaction for entry.
+    ///
+    /// If this is not a debit entry, None is returned, otherwise
+    /// Some(&Transaction<Debit>>) is returned.
     pub fn debit(&self) -> Option<&Transaction<Debit>> {
         self.transaction.as_any().downcast_ref()
     }
 
-	/// Get the credit transaction for entry.
-	///
-	/// If this is not a credit entry, None is returned, otherwise
-	/// Some(&Transaction<Credit>>) is returned.
+    /// Get the credit transaction for entry.
+    ///
+    /// If this is not a credit entry, None is returned, otherwise
+    /// Some(&Transaction<Credit>>) is returned.
     pub fn credit(&self) -> Option<&Transaction<Credit>> {
         self.transaction.as_any().downcast_ref()
     }
@@ -221,7 +221,7 @@ impl JournalEntry {
 /// > an adjustment to the accounts such as if a correction has to be made.
 /// > The journal describes which account is being debited and which account is being
 /// > credited, the date, the reason for the journal and a reference.
-pub struct Journal{
+pub struct Journal {
     details: EntryDetails,
     entries: Vec<JournalEntry>,
 }
@@ -231,7 +231,7 @@ impl Journal {
         Self {
             details: EntryDetails {
                 date,
-                description: None
+                description: None,
             },
             entries: Vec::new(),
         }
@@ -268,52 +268,52 @@ mod test {
 
     use test_case::test_case;
 
-	#[test_case("No leading" => Some(AccountName(String::from("No leading"))))]
-	#[test_case("   Leading" => Some(AccountName(String::from("Leading"))))]
-	#[test_case("Trailing\t" => Some(AccountName(String::from("Trailing"))))]
-	#[test_case("\n Both \n" => Some(AccountName(String::from("Both"))))]
-	#[test_case("\n  \n" => None)]
-	fn account_name_new(input: &str) -> Option<AccountName> {
-		AccountName::new(input)
-	}
+    #[test_case("No leading" => Some(AccountName(String::from("No leading"))))]
+    #[test_case("   Leading" => Some(AccountName(String::from("Leading"))))]
+    #[test_case("Trailing\t" => Some(AccountName(String::from("Trailing"))))]
+    #[test_case("\n Both \n" => Some(AccountName(String::from("Both"))))]
+    #[test_case("\n  \n" => None)]
+    fn account_name_new(input: &str) -> Option<AccountName> {
+        AccountName::new(input)
+    }
 
-	#[test_case(Transaction::debit(50), Some(Transaction::debit(50)))]
-	#[test_case(Transaction::credit(50), None)]
-	fn journal_entry_debit<T>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
-	where
-    	T: TransactionMarker
+    #[test_case(Transaction::debit(50), Some(Transaction::debit(50)))]
+    #[test_case(Transaction::credit(50), None)]
+    fn journal_entry_debit<T>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
+    where
+        T: TransactionMarker,
     {
-    	let account = Account {
-        	name: AccountName(String::from("Test")),
-        	number: AccountNumber(54),
-        	element: AccountElement::Asset,
-    	};
+        let account = Account {
+            name: AccountName(String::from("Test")),
+            number: AccountNumber(54),
+            element: AccountElement::Asset,
+        };
 
-		let actual = JournalEntry {
-    		account,
-    		transaction: Box::new(tx),
-		};
+        let actual = JournalEntry {
+            account,
+            transaction: Box::new(tx),
+        };
 
-		assert_eq!(actual.debit(), expected.as_ref());
-	}
+        assert_eq!(actual.debit(), expected.as_ref());
+    }
 
-	#[test_case(Transaction::credit(50), Some(Transaction::credit(50)))]
-	#[test_case(Transaction::debit(50), None)]
-	fn journal_entry_credit<T>(tx: Transaction<T>, expected: Option<Transaction<Credit>>)
-	where
-    	T: TransactionMarker
+    #[test_case(Transaction::credit(50), Some(Transaction::credit(50)))]
+    #[test_case(Transaction::debit(50), None)]
+    fn journal_entry_credit<T>(tx: Transaction<T>, expected: Option<Transaction<Credit>>)
+    where
+        T: TransactionMarker,
     {
-    	let account = Account {
-        	name: AccountName(String::from("Test")),
-        	number: AccountNumber(54),
-        	element: AccountElement::Asset,
-    	};
+        let account = Account {
+            name: AccountName(String::from("Test")),
+            number: AccountNumber(54),
+            element: AccountElement::Asset,
+        };
 
-		let actual = JournalEntry {
-    		account,
-    		transaction: Box::new(tx),
-		};
+        let actual = JournalEntry {
+            account,
+            transaction: Box::new(tx),
+        };
 
-		assert_eq!(actual.credit(), expected.as_ref());
-	}
+        assert_eq!(actual.credit(), expected.as_ref());
+    }
 }
