@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
@@ -10,7 +11,7 @@ struct EntryDetails {
 }
 
 /// An account number to identify an account.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountNumber(u32);
 
 impl AccountNumber {
@@ -50,7 +51,7 @@ impl std::fmt::Display for AccountNumber {
 /// let name = AccountName::new("    ");
 /// assert_eq!(name, None);
 /// ```
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountName(String);
 
 impl AccountName {
@@ -99,7 +100,7 @@ impl PartialOrd<&str> for AccountName {
 
 /// These are the different types of an Account can be associated with,
 /// also called elements.
-#[derive(Debug, Clone, IntoEnumIterator)]
+#[derive(Debug, Clone, IntoEnumIterator, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AccountElement {
     Asset,
     Liability,
@@ -174,11 +175,116 @@ impl IntoIterator for CreditIter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Account {
     number: AccountNumber,
     name: AccountName,
     element: AccountElement,
+}
+
+impl Account {
+    pub fn new(number: AccountNumber, name: AccountName, element: AccountElement) -> Self {
+        Self { number, name, element }
+    }
+
+    pub fn number(&self) -> &AccountNumber {
+        &self.number
+    }
+
+    pub fn name(&self) -> &AccountName {
+        &self.name
+    }
+
+    pub fn element(&self) -> &AccountElement {
+        &self.element
+    }
+}
+
+pub struct Chart {
+    chart: BTreeMap<AccountElement, BTreeMap<u32, Account>>,
+}
+
+pub struct ChartIter<'a> {
+    chart: &'a BTreeMap<AccountElement, BTreeMap<u32, Account>>,
+    element_iter: std::collections::btree_map::Iter<'a, AccountElement, BTreeMap<u32, Account>>,
+    account_iter: Option<std::collections::btree_map::Iter<'a, u32, Account>>,
+    current_element: Option<&'a AccountElement>,
+}
+
+impl<'a> ChartIter<'a> {
+    fn new(chart: &'a BTreeMap<AccountElement, BTreeMap<u32, Account>>) -> Self {
+        Self {
+            chart,
+            element_iter: chart.iter(),
+            account_iter: None,
+            current_element: None,
+        }
+    }
+}
+
+impl<'a> Iterator for ChartIter<'a> {
+    type Item = (&'a AccountElement, &'a Account);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(ref mut account_iter) = self.account_iter {
+            if let Some((_, account)) = account_iter.next() {
+                return Some((self.current_element.unwrap(), account));
+            } else {
+                // TODO: Refactor, this is copy/paste code
+                if let Some((element, accounts)) = self.element_iter.next() {
+                    self.current_element = Some(element);
+                    self.account_iter = Some(accounts.iter());
+
+                    // TODO: If a key contains an empty list, then this will be None,
+                    // what are we to do in that case?
+                    // Because the next iteration we might go to a different element,
+                    // returning None here doesn't necessarily means we are done.
+                    // TODO: So if this element is empty, redo the outer if statement?
+                    if let Some((_, account)) = self.account_iter.as_mut().unwrap().next() {
+                        return Some((self.current_element.unwrap(), account));
+                    }
+                } else {
+                    return None;
+                }
+            }
+        } else {
+            if let Some((element, accounts)) = self.element_iter.next() {
+                self.current_element = Some(element);
+                self.account_iter = Some(accounts.iter());
+
+                // TODO: If a key contains an empty list, then this will be None,
+                // what are we to do in that case?
+                // Because the next iteration we might go to a different element,
+                // returning None here doesn't necessarily means we are done.
+                // TODO: So if this element is empty, redo the outer if statement?
+                if let Some((_, account)) = self.account_iter.as_mut().unwrap().next() {
+                    return Some((self.current_element.unwrap(), account));
+                }
+            } else {
+                return None;
+            }
+        }
+
+        None
+    }
+}
+
+impl Chart {
+    pub fn new() -> Self {
+        Self { chart: BTreeMap::new() }
+    }
+
+    pub fn push(&mut self, account: Account) {
+        let element = account.element.clone();
+        let number: u32 = account.number.0;
+
+        let en = self.chart.entry(element).or_insert(BTreeMap::new());
+        en.insert(number, account);
+    }
+
+    pub fn iter(&self) -> ChartIter<'_> {
+        ChartIter::new(&self.chart)
+    }
 }
 
 /// This describes a "line" in a journal and notes one account being affected
@@ -315,5 +421,91 @@ mod test {
         };
 
         assert_eq!(actual.credit(), expected.as_ref());
+    }
+
+    #[test]
+    fn chart_iter_empty() {
+        let chart = Chart::new();
+
+        let mut iter = chart.iter();
+
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn chart_iter_single() {
+        let mut chart = Chart::new();
+
+        let account = Account::new(
+            601.into(),
+            AccountName(String::from("Grocery")),
+            AccountElement::Expenses,
+        );
+
+        chart.push(account.clone());
+
+        let expected = vec![
+            (&AccountElement::Expenses, &account)
+        ];
+
+        let actual = chart
+            .iter()
+            .collect::<Vec<_>>();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn chart_iter_multiple() {
+        let mut chart = Chart::new();
+
+        let mut accounts = vec![
+            Account::new(
+                201.into(),
+                AccountName::new("Credit Loan").unwrap(),
+                AccountElement::Liability,
+            ),
+            Account::new(
+                401.into(),
+                AccountName::new("Salary").unwrap(),
+                AccountElement::Income,
+            ),
+            Account::new(
+                502.into(),
+                AccountName::new("Phone").unwrap(),
+                AccountElement::Expenses,
+            ),
+            Account::new(
+                501.into(),
+                AccountName::new("Internet").unwrap(),
+                AccountElement::Expenses,
+            ),
+            Account::new(
+                202.into(),
+                AccountName::new("Bank Loan").unwrap(),
+                AccountElement::Liability,
+            ),
+            Account::new(
+                101.into(),
+                AccountName::new("Bank Account").unwrap(),
+                AccountElement::Asset
+            ),
+        ];
+
+        for account in &accounts {
+            chart.push(account.clone());
+        }
+
+        accounts.sort();
+        let mut expected = Vec::new();
+        for account in &accounts {
+            expected.push((account.element(), account));
+        }
+
+        let actual = chart
+            .iter()
+            .collect::<Vec<_>>();
+
+        assert_eq!(actual, expected);
     }
 }
