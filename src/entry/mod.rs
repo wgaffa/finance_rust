@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
@@ -201,20 +201,18 @@ impl Account {
 }
 
 pub struct Chart {
-    chart: BTreeMap<AccountElement, BTreeMap<u32, Account>>,
+    chart: BTreeMap<AccountElement, BTreeSet<Account>>,
 }
 
 pub struct ChartIter<'a> {
-    chart: &'a BTreeMap<AccountElement, BTreeMap<u32, Account>>,
-    element_iter: std::collections::btree_map::Iter<'a, AccountElement, BTreeMap<u32, Account>>,
-    account_iter: Option<std::collections::btree_map::Iter<'a, u32, Account>>,
+    element_iter: std::collections::btree_map::Iter<'a, AccountElement, BTreeSet<Account>>,
+    account_iter: Option<std::collections::btree_set::Iter<'a, Account>>,
     current_element: Option<&'a AccountElement>,
 }
 
 impl<'a> ChartIter<'a> {
-    fn new(chart: &'a BTreeMap<AccountElement, BTreeMap<u32, Account>>) -> Self {
+    fn new(chart: &'a BTreeMap<AccountElement, BTreeSet<Account>>) -> Self {
         Self {
-            chart,
             element_iter: chart.iter(),
             account_iter: None,
             current_element: None,
@@ -235,7 +233,7 @@ impl<'a> ChartIter<'a> {
     }
 
     fn next_account(&mut self) -> Option<(&'a AccountElement, &'a Account)> {
-        if let Some((_, account)) = self.account_iter.as_mut().unwrap().next() {
+        if let Some(account) = self.account_iter.as_mut().unwrap().next() {
             Some((self.current_element.unwrap(), account))
         } else if let Some(()) = self.next_element() {
             self.next_account()
@@ -268,10 +266,9 @@ impl Chart {
 
     pub fn push(&mut self, account: Account) {
         let element = account.element.clone();
-        let number: u32 = account.number.0;
 
-        let en = self.chart.entry(element).or_insert(BTreeMap::new());
-        en.insert(number, account);
+        let en = self.chart.entry(element).or_insert(BTreeSet::new());
+        en.insert(account);
     }
 
     pub fn iter(&self) -> ChartIter<'_> {
