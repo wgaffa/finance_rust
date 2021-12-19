@@ -222,50 +222,42 @@ impl<'a> ChartIter<'a> {
     }
 }
 
+impl<'a> ChartIter<'a> {
+    fn next_element(&mut self) -> Option<()> {
+        if let Some((element, account)) = self.element_iter.next() {
+            self.current_element = Some(element);
+            self.account_iter = Some(account.iter());
+
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn next_account(&mut self) -> Option<(&'a AccountElement, &'a Account)> {
+        if let Some((_, account)) = self.account_iter.as_mut().unwrap().next() {
+            Some((self.current_element.unwrap(), account))
+        } else if let Some(()) = self.next_element() {
+            self.next_account()
+        } else {
+            None
+        }
+    }
+}
+
 impl<'a> Iterator for ChartIter<'a> {
     type Item = (&'a AccountElement, &'a Account);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(ref mut account_iter) = self.account_iter {
-            if let Some((_, account)) = account_iter.next() {
-                return Some((self.current_element.unwrap(), account));
-            } else {
-                // TODO: Refactor, this is copy/paste code
-                if let Some((element, accounts)) = self.element_iter.next() {
-                    self.current_element = Some(element);
-                    self.account_iter = Some(accounts.iter());
-
-                    // TODO: If a key contains an empty list, then this will be None,
-                    // what are we to do in that case?
-                    // Because the next iteration we might go to a different element,
-                    // returning None here doesn't necessarily means we are done.
-                    // TODO: So if this element is empty, redo the outer if statement?
-                    if let Some((_, account)) = self.account_iter.as_mut().unwrap().next() {
-                        return Some((self.current_element.unwrap(), account));
-                    }
-                } else {
-                    return None;
-                }
-            }
+        if let Some(_) = self.account_iter {
+            self.next_account()
         } else {
-            if let Some((element, accounts)) = self.element_iter.next() {
-                self.current_element = Some(element);
-                self.account_iter = Some(accounts.iter());
-
-                // TODO: If a key contains an empty list, then this will be None,
-                // what are we to do in that case?
-                // Because the next iteration we might go to a different element,
-                // returning None here doesn't necessarily means we are done.
-                // TODO: So if this element is empty, redo the outer if statement?
-                if let Some((_, account)) = self.account_iter.as_mut().unwrap().next() {
-                    return Some((self.current_element.unwrap(), account));
-                }
+            if let Some(()) = self.next_element() {
+                self.next()
             } else {
-                return None;
+                None
             }
         }
-
-        None
     }
 }
 
