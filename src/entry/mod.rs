@@ -101,7 +101,7 @@ impl PartialOrd<&str> for AccountName {
 /// These are the different types of an Account can be associated with,
 /// also called elements.
 #[derive(Debug, Clone, IntoEnumIterator, PartialEq, Eq, PartialOrd, Ord)]
-pub enum AccountElement {
+pub enum Category {
     Asset,
     Liability,
     Equity,
@@ -109,7 +109,7 @@ pub enum AccountElement {
     Expenses,
 }
 
-impl AccountElement {
+impl Category {
     /// Return an iterator that iterates over all elements that are
     /// considered to be debit elements.
     ///
@@ -129,18 +129,18 @@ impl AccountElement {
 
 /// Iterates over all debit elements.
 pub struct DebitIter {
-    debits: Vec<AccountElement>,
+    debits: Vec<Category>,
 }
 
 /// Iterates over all credit elements.
 pub struct CreditIter {
-    credits: Vec<AccountElement>,
+    credits: Vec<Category>,
 }
 
 impl DebitIter {
     fn new() -> Self {
         Self {
-            debits: vec![AccountElement::Asset, AccountElement::Expenses],
+            debits: vec![Category::Asset, Category::Expenses],
         }
     }
 }
@@ -149,16 +149,16 @@ impl CreditIter {
     fn new() -> Self {
         Self {
             credits: vec![
-                AccountElement::Liability,
-                AccountElement::Equity,
-                AccountElement::Income,
+                Category::Liability,
+                Category::Equity,
+                Category::Income,
             ],
         }
     }
 }
 
 impl IntoIterator for DebitIter {
-    type Item = AccountElement;
+    type Item = Category;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -167,7 +167,7 @@ impl IntoIterator for DebitIter {
 }
 
 impl IntoIterator for CreditIter {
-    type Item = AccountElement;
+    type Item = Category;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -179,11 +179,11 @@ impl IntoIterator for CreditIter {
 pub struct Account {
     number: AccountNumber,
     name: AccountName,
-    element: AccountElement,
+    element: Category,
 }
 
 impl Account {
-    pub fn new(number: AccountNumber, name: AccountName, element: AccountElement) -> Self {
+    pub fn new(number: AccountNumber, name: AccountName, element: Category) -> Self {
         Self { number, name, element }
     }
 
@@ -195,23 +195,23 @@ impl Account {
         &self.name
     }
 
-    pub fn element(&self) -> &AccountElement {
+    pub fn element(&self) -> &Category {
         &self.element
     }
 }
 
 pub struct Chart {
-    chart: BTreeMap<AccountElement, BTreeSet<Account>>,
+    chart: BTreeMap<Category, BTreeSet<Account>>,
 }
 
 pub struct ChartIter<'a> {
-    element_iter: std::collections::btree_map::Iter<'a, AccountElement, BTreeSet<Account>>,
+    element_iter: std::collections::btree_map::Iter<'a, Category, BTreeSet<Account>>,
     account_iter: Option<std::collections::btree_set::Iter<'a, Account>>,
-    current_element: Option<&'a AccountElement>,
+    current_element: Option<&'a Category>,
 }
 
 impl<'a> ChartIter<'a> {
-    fn new(chart: &'a BTreeMap<AccountElement, BTreeSet<Account>>) -> Self {
+    fn new(chart: &'a BTreeMap<Category, BTreeSet<Account>>) -> Self {
         Self {
             element_iter: chart.iter(),
             account_iter: None,
@@ -232,7 +232,7 @@ impl<'a> ChartIter<'a> {
         }
     }
 
-    fn next_account(&mut self) -> Option<(&'a AccountElement, &'a Account)> {
+    fn next_account(&mut self) -> Option<(&'a Category, &'a Account)> {
         if let Some(account) = self.account_iter.as_mut().unwrap().next() {
             Some((self.current_element.unwrap(), account))
         } else if let Some(()) = self.next_element() {
@@ -244,7 +244,7 @@ impl<'a> ChartIter<'a> {
 }
 
 impl<'a> Iterator for ChartIter<'a> {
-    type Item = (&'a AccountElement, &'a Account);
+    type Item = (&'a Category, &'a Account);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(_) = self.account_iter {
@@ -381,7 +381,7 @@ mod test {
         let account = Account {
             name: AccountName(String::from("Test")),
             number: AccountNumber(54),
-            element: AccountElement::Asset,
+            element: Category::Asset,
         };
 
         let actual = JournalEntry {
@@ -401,7 +401,7 @@ mod test {
         let account = Account {
             name: AccountName(String::from("Test")),
             number: AccountNumber(54),
-            element: AccountElement::Asset,
+            element: Category::Asset,
         };
 
         let actual = JournalEntry {
@@ -428,13 +428,13 @@ mod test {
         let account = Account::new(
             601.into(),
             AccountName(String::from("Grocery")),
-            AccountElement::Expenses,
+            Category::Expenses,
         );
 
         chart.push(account.clone());
 
         let expected = vec![
-            (&AccountElement::Expenses, &account)
+            (&Category::Expenses, &account)
         ];
 
         let actual = chart
@@ -452,32 +452,32 @@ mod test {
             Account::new(
                 201.into(),
                 AccountName::new("Credit Loan").unwrap(),
-                AccountElement::Liability,
+                Category::Liability,
             ),
             Account::new(
                 401.into(),
                 AccountName::new("Salary").unwrap(),
-                AccountElement::Income,
+                Category::Income,
             ),
             Account::new(
                 502.into(),
                 AccountName::new("Phone").unwrap(),
-                AccountElement::Expenses,
+                Category::Expenses,
             ),
             Account::new(
                 501.into(),
                 AccountName::new("Internet").unwrap(),
-                AccountElement::Expenses,
+                Category::Expenses,
             ),
             Account::new(
                 202.into(),
                 AccountName::new("Bank Loan").unwrap(),
-                AccountElement::Liability,
+                Category::Liability,
             ),
             Account::new(
                 101.into(),
                 AccountName::new("Bank Account").unwrap(),
-                AccountElement::Asset
+                Category::Asset
             ),
         ];
 
