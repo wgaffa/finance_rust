@@ -311,7 +311,7 @@ impl JournalEntry {
 /// This describes which accounts is being debited and which account is being credited
 /// as well as the date and a description of the journal.
 ///
-/// From https://www.beginner-bookkeeping.com/bookkeeping-terms.html
+/// From <https://www.beginner-bookkeeping.com/bookkeeping-terms.html>
 /// > An entry that is made into the accounts utilizing double entry bookkeeping to make
 /// > an adjustment to the accounts such as if a correction has to be made.
 /// > The journal describes which account is being debited and which account is being
