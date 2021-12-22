@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
@@ -280,7 +281,7 @@ impl Chart {
 /// with a debit or credit transaction.
 pub struct JournalEntry {
     account: Account,
-    transaction: Box<dyn TransactionMarker>,
+    pub(crate) transaction: Box<dyn TransactionMarker>,
 }
 
 impl JournalEntry {
