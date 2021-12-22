@@ -98,8 +98,7 @@ impl PartialOrd<&str> for AccountName {
     }
 }
 
-/// These are the different types of an Account can be associated with,
-/// also called elements.
+/// These are the different types of an Account can be associated with.
 #[derive(Debug, Clone, IntoEnumIterator, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Category {
     Asset,
@@ -127,12 +126,12 @@ impl Category {
     }
 }
 
-/// Iterates over all debit elements.
+/// Iterator over all debit categories.
 pub struct DebitIter {
     debits: Vec<Category>,
 }
 
-/// Iterates over all credit elements.
+/// Iterator over all credit categories.
 pub struct CreditIter {
     credits: Vec<Category>,
 }
@@ -175,16 +174,17 @@ impl IntoIterator for CreditIter {
     }
 }
 
+/// An account with a name and identifier
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Account {
     number: AccountNumber,
     name: AccountName,
-    element: Category,
+    category: Category,
 }
 
 impl Account {
     pub fn new(number: AccountNumber, name: AccountName, element: Category) -> Self {
-        Self { number, name, element }
+        Self { number, name, category: element }
     }
 
     pub fn number(&self) -> &AccountNumber {
@@ -195,8 +195,8 @@ impl Account {
         &self.name
     }
 
-    pub fn element(&self) -> &Category {
-        &self.element
+    pub fn category(&self) -> &Category {
+        &self.category
     }
 }
 
@@ -205,7 +205,7 @@ pub struct Chart {
 }
 
 pub struct ChartIter<'a> {
-    element_iter: std::collections::btree_map::Iter<'a, Category, BTreeSet<Account>>,
+    category_iter: std::collections::btree_map::Iter<'a, Category, BTreeSet<Account>>,
     account_iter: Option<std::collections::btree_set::Iter<'a, Account>>,
     current_element: Option<&'a Category>,
 }
@@ -213,7 +213,7 @@ pub struct ChartIter<'a> {
 impl<'a> ChartIter<'a> {
     fn new(chart: &'a BTreeMap<Category, BTreeSet<Account>>) -> Self {
         Self {
-            element_iter: chart.iter(),
+            category_iter: chart.iter(),
             account_iter: None,
             current_element: None,
         }
@@ -221,8 +221,8 @@ impl<'a> ChartIter<'a> {
 }
 
 impl<'a> ChartIter<'a> {
-    fn next_element(&mut self) -> Option<()> {
-        if let Some((element, account)) = self.element_iter.next() {
+    fn next_category(&mut self) -> Option<()> {
+        if let Some((element, account)) = self.category_iter.next() {
             self.current_element = Some(element);
             self.account_iter = Some(account.iter());
 
@@ -235,7 +235,7 @@ impl<'a> ChartIter<'a> {
     fn next_account(&mut self) -> Option<(&'a Category, &'a Account)> {
         if let Some(account) = self.account_iter.as_mut().unwrap().next() {
             Some((self.current_element.unwrap(), account))
-        } else if let Some(()) = self.next_element() {
+        } else if let Some(()) = self.next_category() {
             self.next_account()
         } else {
             None
@@ -250,7 +250,7 @@ impl<'a> Iterator for ChartIter<'a> {
         if let Some(_) = self.account_iter {
             self.next_account()
         } else {
-            if let Some(()) = self.next_element() {
+            if let Some(()) = self.next_category() {
                 self.next()
             } else {
                 None
@@ -265,7 +265,7 @@ impl Chart {
     }
 
     pub fn push(&mut self, account: Account) {
-        let element = account.element.clone();
+        let element = account.category.clone();
 
         let en = self.chart.entry(element).or_insert(BTreeSet::new());
         en.insert(account);
@@ -381,7 +381,7 @@ mod test {
         let account = Account {
             name: AccountName(String::from("Test")),
             number: AccountNumber(54),
-            element: Category::Asset,
+            category: Category::Asset,
         };
 
         let actual = JournalEntry {
@@ -401,7 +401,7 @@ mod test {
         let account = Account {
             name: AccountName(String::from("Test")),
             number: AccountNumber(54),
-            element: Category::Asset,
+            category: Category::Asset,
         };
 
         let actual = JournalEntry {
@@ -488,7 +488,7 @@ mod test {
         accounts.sort();
         let mut expected = Vec::new();
         for account in &accounts {
-            expected.push((account.element(), account));
+            expected.push((account.category(), account));
         }
 
         let actual = chart
