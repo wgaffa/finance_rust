@@ -1,20 +1,77 @@
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::iter::Sum;
 use std::marker::PhantomData;
 
-#[derive(Debug, PartialEq)]
+pub fn is_debit<T: ?Sized + Any>(_s: &T) -> bool {
+    TypeId::of::<Transaction<Debit>>() == TypeId::of::<T>()
+}
+
+pub fn is_credit<T: ?Sized + Any>(_s: &T) -> bool {
+    TypeId::of::<Transaction<Credit>>() == TypeId::of::<T>()
+}
+
+pub enum Balance {
+    Debit(Transaction<Debit>),
+    Credit(Transaction<Credit>),
+}
+
+pub fn to_balance<T: TransactionMarker>(value: T) -> Balance {
+    if is_debit(&value) {
+        Balance::Debit(value.as_debit().unwrap())
+    } else if is_credit(&value) {
+        Balance::Credit(value.as_credit().unwrap())
+    } else {
+        panic!("Could not convert to a balance")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Debit;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Credit;
 
 pub trait TransactionMarker: Any {
     fn as_any(&self) -> &dyn Any;
+
+    fn as_debit(self) -> Option<Transaction<Debit>>
+    where
+        Self: Sized,
+    {
+        None
+    }
+
+    fn as_credit(self) -> Option<Transaction<Credit>>
+    where
+        Self: Sized,
+    {
+        None
+    }
 }
 
-impl<T: 'static> TransactionMarker for Transaction<T> {
+impl TransactionMarker for Transaction<Credit> {
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn as_credit(self) -> Option<Transaction<Credit>>
+    where
+        Self: Sized,
+    {
+        Some(self)
+    }
+}
+
+impl TransactionMarker for Transaction<Debit> {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_debit(self) -> Option<Transaction<Debit>>
+    where
+        Self: Sized,
+    {
+        Some(self)
     }
 }
 
@@ -31,7 +88,7 @@ impl TransactionMarker for Credit {
 }
 
 /// Data for a single transaction holding the entry type and amount
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Transaction<T> {
     amount: u32,
     phantom: PhantomData<T>,
