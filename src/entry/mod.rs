@@ -377,7 +377,7 @@ mod test {
     #[test_case(Transaction::credit(50), None)]
     fn journal_entry_debit<T>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
     where
-        T: TransactionMarker,
+        Transaction<T>: TransactionMarker,
     {
         let account = Account {
             name: AccountName(String::from("Test")),
@@ -397,7 +397,7 @@ mod test {
     #[test_case(Transaction::debit(50), None)]
     fn journal_entry_credit<T>(tx: Transaction<T>, expected: Option<Transaction<Credit>>)
     where
-        T: TransactionMarker,
+        Transaction<T>: TransactionMarker,
     {
         let account = Account {
             name: AccountName(String::from("Test")),

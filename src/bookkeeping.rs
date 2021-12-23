@@ -75,18 +75,6 @@ impl TransactionMarker for Transaction<Debit> {
     }
 }
 
-impl TransactionMarker for Debit {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-impl TransactionMarker for Credit {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 /// Data for a single transaction holding the entry type and amount
 #[derive(Debug, Clone, PartialEq)]
 pub struct Transaction<T> {
@@ -184,25 +172,29 @@ impl<'a, T> Sum for Transaction<T> {
 ///
 /// # Panics
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
-pub fn split(collection: Vec<Box<dyn Any>>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
+pub fn split(collection: Vec<Box<dyn TransactionMarker>>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
     #[allow(clippy::type_complexity)]
-    let (debits, credits): (Vec<Box<dyn Any>>, Vec<Box<dyn Any>>) = collection
-        .into_iter()
-        .partition(|x| x.is::<Transaction<Debit>>());
+    let (debits, credits): (Vec<Box<dyn TransactionMarker>>, Vec<Box<dyn TransactionMarker>>) = collection
+.into_iter()
+        .partition(|x| x.as_any().is::<Transaction<Debit>>());
 
     // Since we split the transactions on the Debit types we can just unwrap the debits downcast.
     // But credits may contain malicious types and we therefore inspect the elements and panics if
     // it's not a credit type. Otherwise we just move on.
     let debits = debits
         .into_iter()
-        .map(|x| *x.downcast::<Transaction<Debit>>().unwrap())
+        .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap().to_owned())
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
-        .map(|x| match x.downcast::<Transaction<Credit>>() {
-            Ok(c) => *c,
-            Err(_e) => panic!("Trying to split trait objects of incompatible types"),
-        })
+        .map(
+            |x|
+            x
+                .as_any()
+                .downcast_ref::<Transaction<Credit>>()
+                .expect("Trying to split trait objects of incompatible types")
+                .to_owned()
+        )
         .collect::<Vec<Transaction<Credit>>>();
 
     (debits, credits)
