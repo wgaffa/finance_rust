@@ -17,9 +17,9 @@ pub enum Balance {
 
 pub fn to_balance<T: TransactionMarker>(value: T) -> Balance {
     if is_debit(&value) {
-        Balance::Debit(value.as_debit().unwrap())
+        Balance::Debit(value.as_debit().unwrap().to_owned())
     } else if is_credit(&value) {
-        Balance::Credit(value.as_credit().unwrap())
+        Balance::Credit(value.as_credit().unwrap().to_owned())
     } else {
         panic!("Could not convert to a balance")
     }
@@ -34,17 +34,11 @@ pub struct Credit;
 pub trait TransactionMarker: Any {
     fn as_any(&self) -> &dyn Any;
 
-    fn as_debit(self) -> Option<Transaction<Debit>>
-    where
-        Self: Sized,
-    {
+    fn as_debit(&self) -> Option<&Transaction<Debit>> {
         None
     }
 
-    fn as_credit(self) -> Option<Transaction<Credit>>
-    where
-        Self: Sized,
-    {
+    fn as_credit(&self) -> Option<&Transaction<Credit>> {
         None
     }
 }
@@ -54,7 +48,7 @@ impl TransactionMarker for Transaction<Credit> {
         self
     }
 
-    fn as_credit(self) -> Option<Transaction<Credit>>
+    fn as_credit(&self) -> Option<&Transaction<Credit>>
     where
         Self: Sized,
     {
@@ -67,7 +61,7 @@ impl TransactionMarker for Transaction<Debit> {
         self
     }
 
-    fn as_debit(self) -> Option<Transaction<Debit>>
+    fn as_debit(&self) -> Option<&Transaction<Debit>>
     where
         Self: Sized,
     {
@@ -183,15 +177,15 @@ pub fn split(collection: Vec<Box<dyn TransactionMarker>>) -> (Vec<Transaction<De
     // it's not a credit type. Otherwise we just move on.
     let debits = debits
         .into_iter()
-        .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap().to_owned())
+        // .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap().to_owned())
+        .map(|x| x.as_debit().unwrap().to_owned())
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
         .map(
             |x|
             x
-                .as_any()
-                .downcast_ref::<Transaction<Credit>>()
+                .as_credit()
                 .expect("Trying to split trait objects of incompatible types")
                 .to_owned()
         )
