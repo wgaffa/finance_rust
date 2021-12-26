@@ -2,11 +2,11 @@ use std::any::{Any, TypeId};
 use std::iter::Sum;
 use std::marker::PhantomData;
 
-pub fn is_debit<T: ?Sized + Any>(_s: &T) -> bool {
+fn is_debit<T: ?Sized + Any>(_s: &T) -> bool {
     TypeId::of::<Transaction<Debit>>() == TypeId::of::<T>()
 }
 
-pub fn is_credit<T: ?Sized + Any>(_s: &T) -> bool {
+fn is_credit<T: ?Sized + Any>(_s: &T) -> bool {
     TypeId::of::<Transaction<Credit>>() == TypeId::of::<T>()
 }
 
@@ -106,6 +106,10 @@ impl Transaction<Debit> {
             phantom: PhantomData,
         }
     }
+
+    pub fn balance(self) -> Balance {
+        Balance::Debit(self)
+    }
 }
 
 impl Transaction<Credit> {
@@ -121,6 +125,10 @@ impl Transaction<Credit> {
             amount,
             phantom: PhantomData,
         }
+    }
+
+    pub fn balance(self) -> Balance {
+        Balance::Credit(self)
     }
 }
 
