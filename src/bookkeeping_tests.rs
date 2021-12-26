@@ -112,3 +112,21 @@ fn split_transaction_panics_on_wrong_types() {
 
     let (_debits, _credits) = split(vec);
 }
+
+#[test]
+fn to_balance_should_return_debit_balance_given_transaction_debit() {
+    let debit = Transaction::debit(50);
+    let actual = debit.into_balance();
+
+    let expected = Balance::Debit(Transaction::debit(50));
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn to_balance_should_return_credit_balance_given_transaction_credit() {
+    let credit = Transaction::credit(50);
+    let actual = credit.into_balance();
+
+    let expected = Balance::Credit(Transaction::credit(50));
+    assert_eq!(actual, expected);
+}

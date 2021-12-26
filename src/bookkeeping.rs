@@ -1,34 +1,17 @@
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::iter::Sum;
 use std::marker::PhantomData;
 
-fn is_debit<T: ?Sized + Any>(_s: &T) -> bool {
-    TypeId::of::<Transaction<Debit>>() == TypeId::of::<T>()
-}
-
-fn is_credit<T: ?Sized + Any>(_s: &T) -> bool {
-    TypeId::of::<Transaction<Credit>>() == TypeId::of::<T>()
-}
-
+#[derive(Debug, Clone,PartialEq, Eq)]
 pub enum Balance {
     Debit(Transaction<Debit>),
     Credit(Transaction<Credit>),
 }
 
-pub fn to_balance<T: TransactionMarker>(value: T) -> Balance {
-    if is_debit(&value) {
-        Balance::Debit(value.as_debit().unwrap().to_owned())
-    } else if is_credit(&value) {
-        Balance::Credit(value.as_credit().unwrap().to_owned())
-    } else {
-        panic!("Could not convert to a balance")
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Debit;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Credit;
 
 pub trait TransactionMarker: Any {
@@ -70,7 +53,7 @@ impl TransactionMarker for Transaction<Debit> {
 }
 
 /// Data for a single transaction holding the entry type and amount
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transaction<T> {
     amount: u32,
     phantom: PhantomData<T>,
@@ -107,7 +90,7 @@ impl Transaction<Debit> {
         }
     }
 
-    pub fn balance(self) -> Balance {
+    pub fn into_balance(self) -> Balance {
         Balance::Debit(self)
     }
 }
@@ -127,7 +110,7 @@ impl Transaction<Credit> {
         }
     }
 
-    pub fn balance(self) -> Balance {
+    pub fn into_balance(self) -> Balance {
         Balance::Credit(self)
     }
 }
