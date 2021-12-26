@@ -38,7 +38,7 @@ pub struct Debit;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Credit;
 
-pub trait TransactionMarker: Any {
+pub(crate) trait TransactionMarker: Any {
     fn as_any(&self) -> &dyn Any;
 
     fn as_debit(&self) -> Option<&Transaction<Debit>> {
@@ -202,10 +202,13 @@ impl<'a, T> Sum for Transaction<T> {
 ///
 /// # Panics
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
-pub fn split(collection: Vec<Box<dyn TransactionMarker>>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
-    #[allow(clippy::type_complexity)]
+pub fn split(collection: Vec<Balance>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
     let (debits, credits): (Vec<Box<dyn TransactionMarker>>, Vec<Box<dyn TransactionMarker>>) = collection
-.into_iter()
+        .into_iter()
+        .map(|x| match x {
+            Balance::Credit(credit) => Box::new(credit) as Box<dyn TransactionMarker>,
+            Balance::Debit(debit) => Box::new(debit),
+        })
         .partition(|x| x.as_any().is::<Transaction<Debit>>());
 
     // Since we split the transactions on the Debit types we can just unwrap the debits downcast.
