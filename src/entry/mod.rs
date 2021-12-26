@@ -248,14 +248,12 @@ impl<'a> Iterator for ChartIter<'a> {
     type Item = (&'a Category, &'a Account);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(_) = self.account_iter {
+        if self.account_iter.is_some() {
             self.next_account()
+        } else if let Some(()) = self.next_category() {
+            self.next()
         } else {
-            if let Some(()) = self.next_category() {
-                self.next()
-            } else {
-                None
-            }
+            None
         }
     }
 }
@@ -274,6 +272,12 @@ impl Chart {
 
     pub fn iter(&self) -> ChartIter<'_> {
         ChartIter::new(&self.chart)
+    }
+}
+
+impl Default for Chart {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

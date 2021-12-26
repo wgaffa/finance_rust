@@ -203,6 +203,7 @@ impl<'a, T> Sum for Transaction<T> {
 /// # Panics
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
 pub fn split(collection: Vec<Balance>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
+    #[allow(clippy::type_complexity)]
     let (debits, credits): (Vec<Box<dyn TransactionMarker>>, Vec<Box<dyn TransactionMarker>>) = collection
         .into_iter()
         .map(|x| match x {
