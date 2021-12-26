@@ -2,10 +2,34 @@ use std::any::Any;
 use std::iter::Sum;
 use std::marker::PhantomData;
 
+/// A balance is either a Debit or Credit transaction
+///
+/// # Examples
+/// ```
+/// use personal_finance::bookkeeping::{Transaction, Balance};
+///
+/// let debit = Balance::debit(50);
+/// let credit = Balance::credit(20);
+///
+/// assert_eq!(debit, Balance::Debit(Transaction::debit(50)));
+/// assert_eq!(credit, Balance::Credit(Transaction::credit(20)));
+/// ```
 #[derive(Debug, Clone,PartialEq, Eq)]
 pub enum Balance {
     Debit(Transaction<Debit>),
     Credit(Transaction<Credit>),
+}
+
+impl Balance {
+    /// Create a new debit balance
+    pub fn debit(amount: u32) -> Self {
+        Self::Debit(Transaction::debit(amount))
+    }
+
+    /// Create a new credit balance
+    pub fn credit(amount: u32) -> Self {
+        Self::Credit(Transaction::credit(amount))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,6 +102,7 @@ impl<T> Transaction<T> {
 impl Transaction<Debit> {
     /// Create a new debit transaction
     ///
+    /// # Examples
     /// ```
     /// use personal_finance::bookkeeping::Transaction;
     /// let transaction = Transaction::debit(40);
@@ -90,6 +115,16 @@ impl Transaction<Debit> {
         }
     }
 
+    /// Convert this transaction to a [Balance] consuming itself
+    ///
+    /// # Examples
+    /// ```
+    /// use personal_finance::bookkeeping::{Transaction, Balance};
+    ///
+    /// let debit = Transaction::debit(50);
+    /// let debit = debit.into_balance();
+    /// assert_eq!(debit, Balance::Debit(Transaction::debit(50)));
+    /// ```
     pub fn into_balance(self) -> Balance {
         Balance::Debit(self)
     }
@@ -110,6 +145,16 @@ impl Transaction<Credit> {
         }
     }
 
+    /// Convert this transaction to a [Balance] consuming itself
+    ///
+    /// # Examples
+    /// ```
+    /// use personal_finance::bookkeeping::{Transaction, Balance};
+    ///
+    /// let credit = Transaction::credit(50);
+    /// let credit = credit.into_balance();
+    /// assert_eq!(credit, Balance::Credit(Transaction::credit(50)));
+    /// ```
     pub fn into_balance(self) -> Balance {
         Balance::Credit(self)
     }
