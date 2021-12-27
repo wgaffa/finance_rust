@@ -104,7 +104,7 @@ impl TransactionMarker for MockTest {
 #[test]
 fn to_balance_should_return_debit_balance_given_transaction_debit() {
     let debit = Transaction::debit(50);
-    let actual = debit.into_balance();
+    let actual: Balance = debit.into();
 
     let expected = Balance::Debit(Transaction::debit(50));
     assert_eq!(actual, expected);
@@ -113,7 +113,7 @@ fn to_balance_should_return_debit_balance_given_transaction_debit() {
 #[test]
 fn to_balance_should_return_credit_balance_given_transaction_credit() {
     let credit = Transaction::credit(50);
-    let actual = credit.into_balance();
+    let actual: Balance = credit.into();
 
     let expected = Balance::Credit(Transaction::credit(50));
     assert_eq!(actual, expected);

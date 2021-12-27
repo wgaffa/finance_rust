@@ -32,6 +32,18 @@ impl Balance {
     }
 }
 
+impl From<Transaction<Debit>> for Balance {
+    fn from(value: Transaction<Debit>) -> Self {
+        Self::Debit(value)
+    }
+}
+
+impl From<Transaction<Credit>> for Balance {
+    fn from(value: Transaction<Credit>) -> Self {
+        Self::Credit(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Debit;
 
@@ -114,20 +126,6 @@ impl Transaction<Debit> {
             phantom: PhantomData,
         }
     }
-
-    /// Convert this transaction to a [Balance] consuming itself
-    ///
-    /// # Examples
-    /// ```
-    /// use personal_finance::bookkeeping::{Transaction, Balance};
-    ///
-    /// let debit = Transaction::debit(50);
-    /// let debit = debit.into_balance();
-    /// assert_eq!(debit, Balance::Debit(Transaction::debit(50)));
-    /// ```
-    pub fn into_balance(self) -> Balance {
-        Balance::Debit(self)
-    }
 }
 
 impl Transaction<Credit> {
@@ -143,20 +141,6 @@ impl Transaction<Credit> {
             amount,
             phantom: PhantomData,
         }
-    }
-
-    /// Convert this transaction to a [Balance] consuming itself
-    ///
-    /// # Examples
-    /// ```
-    /// use personal_finance::bookkeeping::{Transaction, Balance};
-    ///
-    /// let credit = Transaction::credit(50);
-    /// let credit = credit.into_balance();
-    /// assert_eq!(credit, Balance::Credit(Transaction::credit(50)));
-    /// ```
-    pub fn into_balance(self) -> Balance {
-        Balance::Credit(self)
     }
 }
 
