@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 
-use crate::bookkeeping::TransactionMarker;
+use crate::balance::TransactionMarker;
 use crate::entry::{Account, Journal};
 
 struct LedgerEntry<'a> {

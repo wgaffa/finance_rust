@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 ///
 /// # Examples
 /// ```
-/// use personal_finance::bookkeeping::{Transaction, Balance};
+/// use personal_finance::balance::{Transaction, Balance};
 ///
 /// let debit = Balance::debit(50);
 /// let credit = Balance::credit(20);
@@ -116,7 +116,7 @@ impl Transaction<Debit> {
     ///
     /// # Examples
     /// ```
-    /// use personal_finance::bookkeeping::Transaction;
+    /// use personal_finance::balance::Transaction;
     /// let transaction = Transaction::debit(40);
     /// assert_eq!(transaction.amount(), 40);
     /// ```
@@ -132,7 +132,7 @@ impl Transaction<Credit> {
     /// Create a new credit transaction
     ///
     /// ```
-    /// use personal_finance::bookkeeping::Transaction;
+    /// use personal_finance::balance::Transaction;
     /// let transaction = Transaction::credit(70);
     /// assert_eq!(transaction.amount(), 70);
     /// ```
@@ -219,5 +219,4 @@ pub fn split(collection: Vec<Balance>) -> (Vec<Transaction<Debit>>, Vec<Transact
 }
 
 #[cfg(test)]
-#[path = "bookkeeping_tests.rs"]
-mod bookkeeping_tests;
+mod tests;

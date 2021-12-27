@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
-use crate::bookkeeping::{Credit, Debit, Transaction, TransactionMarker};
+use crate::balance::{Credit, Debit, Transaction, TransactionMarker};
 
 #[derive(Debug)]
 struct EntryDetails {
