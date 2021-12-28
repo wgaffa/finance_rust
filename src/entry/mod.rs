@@ -362,6 +362,19 @@ impl Journal {
     }
 }
 
+impl<'a> IntoIterator for &'a Journal {
+    type IntoIter = std::slice::Iter<'a, JournalEntry>;
+    type Item = &'a JournalEntry;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter()
+    }
+}
+
+pub struct DayBook {
+    journals: Vec<Journal>,
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
