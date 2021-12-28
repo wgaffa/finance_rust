@@ -50,7 +50,7 @@ pub struct Debit;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Credit;
 
-pub(crate) trait TransactionMarker: Any {
+pub(crate) trait TransactionMarker: Any + std::fmt::Debug {
     fn as_any(&self) -> &dyn Any;
 
     fn as_debit(&self) -> Option<&Transaction<Debit>> {

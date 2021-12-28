@@ -278,6 +278,7 @@ impl Chart {
 
 /// This describes a "line" in a journal and notes one account being affected
 /// with a debit or credit transaction.
+#[derive(Debug)]
 pub struct JournalEntry {
     account: Account,
     pub(crate) transaction: Box<dyn TransactionMarker>,
@@ -316,6 +317,7 @@ impl JournalEntry {
 /// > an adjustment to the accounts such as if a correction has to be made.
 /// > The journal describes which account is being debited and which account is being
 /// > credited, the date, the reason for the journal and a reference.
+#[derive(Debug)]
 pub struct Journal {
     details: EntryDetails,
     entries: Vec<JournalEntry>,
@@ -366,7 +368,7 @@ impl<'a> IntoIterator for &'a Journal {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct DayBook {
     journals: Vec<Journal>,
 }
