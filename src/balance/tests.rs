@@ -92,6 +92,7 @@ fn split_transactions() {
     assert_eq!(credit_sum.amount, 20);
 }
 
+#[derive(Debug)]
 struct MockTest;
 
 impl TransactionMarker for MockTest {

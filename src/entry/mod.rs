@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+use std::mem;
 
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
@@ -203,60 +204,7 @@ impl Account {
 
 #[derive(Debug, Default)]
 pub struct Chart {
-    chart: BTreeMap<Category, BTreeSet<Account>>,
-}
-
-pub struct ChartIter<'a> {
-    category_iter: std::collections::btree_map::Iter<'a, Category, BTreeSet<Account>>,
-    account_iter: Option<std::collections::btree_set::Iter<'a, Account>>,
-    current_element: Option<&'a Category>,
-}
-
-impl<'a> ChartIter<'a> {
-    fn new(chart: &'a BTreeMap<Category, BTreeSet<Account>>) -> Self {
-        Self {
-            category_iter: chart.iter(),
-            account_iter: None,
-            current_element: None,
-        }
-    }
-}
-
-impl<'a> ChartIter<'a> {
-    fn next_category(&mut self) -> Option<()> {
-        if let Some((element, account)) = self.category_iter.next() {
-            self.current_element = Some(element);
-            self.account_iter = Some(account.iter());
-
-            Some(())
-        } else {
-            None
-        }
-    }
-
-    fn next_account(&mut self) -> Option<(&'a Category, &'a Account)> {
-        if let Some(account) = self.account_iter.as_mut().unwrap().next() {
-            Some((self.current_element.unwrap(), account))
-        } else if let Some(()) = self.next_category() {
-            self.next_account()
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a> Iterator for ChartIter<'a> {
-    type Item = (&'a Category, &'a Account);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.account_iter.is_some() {
-            self.next_account()
-        } else if let Some(()) = self.next_category() {
-            self.next()
-        } else {
-            None
-        }
-    }
+    chart: BTreeMap<u32, Account>,
 }
 
 impl Chart {
@@ -264,15 +212,24 @@ impl Chart {
         Self { chart: BTreeMap::new() }
     }
 
-    pub fn push(&mut self, account: Account) {
-        let element = account.category.clone();
-
-        let en = self.chart.entry(element).or_insert(BTreeSet::new());
-        en.insert(account);
+    /// Insert an account into the chart
+    ///
+    /// Returns the old value if it already contained a value, otherwise it returns None.
+    pub fn insert(&mut self, account: Account) -> Option<Account> {
+        match self.chart.get_mut(&account.number.0) {
+            Some(x) => {
+                let old = mem::replace(x, account);
+                Some(old)
+            }
+            None => {
+                self.chart.insert(account.number.0, account);
+                None
+            },
+        }
     }
 
-    pub fn iter(&self) -> ChartIter<'_> {
-        ChartIter::new(&self.chart)
+    pub fn iter(&self) -> impl Iterator<Item = &Account> {
+        self.chart.values()
     }
 }
 
@@ -459,6 +416,61 @@ mod test {
     }
 
     #[test]
+    fn chart_insert_duplicate_gives_length_one() {
+        let mut chart = Chart::new();
+
+        chart.insert(Account::new(
+            101.into(),
+            AccountName::new("Test").unwrap(),
+            Category::Expenses
+        ));
+        chart.insert(Account::new(
+            101.into(),
+            AccountName::new("Duplicate number").unwrap(),
+            Category::Asset
+        ));
+
+        assert_eq!(chart.chart.len(), 1);
+    }
+
+    #[test]
+    fn chart_insert_duplicate_returns_old() {
+        let mut chart = Chart::new();
+
+        chart.insert(Account::new(
+            101.into(),
+            AccountName::new("Test").unwrap(),
+            Category::Expenses
+        ));
+        let actual = chart.insert(Account::new(
+            101.into(),
+            AccountName::new("Duplicate number").unwrap(),
+            Category::Asset
+        ));
+
+        let expected = Account::new(
+            101.into(),
+            AccountName::new("Test").unwrap(),
+            Category::Expenses
+        );
+
+        assert_eq!(actual, Some(expected));
+    }
+
+    #[test]
+    fn chart_insert_given_unique_account_returns_none() {
+        let mut chart = Chart::new();
+
+        let actual = chart.insert(Account::new(
+            101.into(),
+            AccountName::new("Test").unwrap(),
+            Category::Income
+        ));
+
+        assert_eq!(actual, None);
+    }
+
+    #[test]
     fn chart_iter_empty() {
         let chart = Chart::new();
 
@@ -477,10 +489,10 @@ mod test {
             Category::Expenses,
         );
 
-        chart.push(account.clone());
+        chart.insert(account.clone());
 
         let expected = vec![
-            (&Category::Expenses, &account)
+            &account
         ];
 
         let actual = chart
@@ -528,13 +540,13 @@ mod test {
         ];
 
         for account in &accounts {
-            chart.push(account.clone());
+            chart.insert(account.clone());
         }
 
         accounts.sort();
         let mut expected = Vec::new();
         for account in &accounts {
-            expected.push((account.category(), account));
+            expected.push(account);
         }
 
         let actual = chart
