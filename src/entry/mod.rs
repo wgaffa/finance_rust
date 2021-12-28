@@ -201,6 +201,7 @@ impl Account {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Chart {
     chart: BTreeMap<Category, BTreeSet<Account>>,
 }
@@ -272,12 +273,6 @@ impl Chart {
 
     pub fn iter(&self) -> ChartIter<'_> {
         ChartIter::new(&self.chart)
-    }
-}
-
-impl Default for Chart {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -371,8 +366,39 @@ impl<'a> IntoIterator for &'a Journal {
     }
 }
 
+#[derive(Default)]
 pub struct DayBook {
     journals: Vec<Journal>,
+}
+
+impl DayBook {
+    pub fn new() -> Self {
+        Self {
+            journals: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, journal: Journal) {
+        self.journals.push(journal);
+    }
+}
+
+impl IntoIterator for DayBook {
+    type IntoIter = std::vec::IntoIter<Journal>;
+    type Item = Journal;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.journals.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a DayBook {
+    type IntoIter = std::slice::Iter<'a, Journal>;
+    type Item = &'a Journal;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.journals.iter()
+    }
 }
 
 #[cfg(test)]
