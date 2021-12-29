@@ -23,8 +23,9 @@ impl<'a> Ledger<'a> {
 
     /// Push an entry in the ledger only if the entry is for
     /// the same account
-    pub fn push(&mut self, journal: &'a Journal) {
-        for entry in journal.iter() {
+    pub fn push(&mut self, journal: &'a Journal) -> usize {
+        let mut count = 0;
+        for entry in journal {
             if entry.account() == self.account {
                 let ledger_entry = LedgerEntry {
                     date: journal.date(),
@@ -32,7 +33,10 @@ impl<'a> Ledger<'a> {
                 };
 
                 self.entries.push(ledger_entry);
+                count += 1;
             }
         }
+
+        count
     }
 }
