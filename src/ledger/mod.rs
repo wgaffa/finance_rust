@@ -1,18 +1,18 @@
 use chrono::prelude::*;
 
-use crate::balance::TransactionMarker;
+use crate::balance::{TransactionMarker, Balance};
 use crate::entry::{Account, Journal};
 
 #[derive(Debug)]
-struct LedgerEntry<'a> {
-    date: &'a Date<Utc>,
-    transaction: &'a dyn TransactionMarker,
+struct LedgerEntry {
+    date: Date<Utc>,
+    transaction: Balance,
 }
 
 #[derive(Debug)]
 pub struct Ledger<'a> {
     account: &'a Account,
-    entries: Vec<LedgerEntry<'a>>,
+    entries: Vec<LedgerEntry>,
 }
 
 impl<'a> Ledger<'a> {
@@ -30,8 +30,8 @@ impl<'a> Ledger<'a> {
         for entry in journal {
             if entry.account() == self.account {
                 let ledger_entry = LedgerEntry {
-                    date: journal.date(),
-                    transaction: entry.transaction.as_ref(),
+                    date: journal.date().to_owned(),
+                    transaction: entry.transaction.as_balance().unwrap(),
                 };
 
                 self.entries.push(ledger_entry);

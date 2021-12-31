@@ -60,6 +60,10 @@ pub(crate) trait TransactionMarker: Any + std::fmt::Debug {
     fn as_credit(&self) -> Option<&Transaction<Credit>> {
         None
     }
+
+    fn as_balance(&self) -> Option<Balance> {
+        None
+    }
 }
 
 impl TransactionMarker for Transaction<Credit> {
@@ -73,6 +77,10 @@ impl TransactionMarker for Transaction<Credit> {
     {
         Some(self)
     }
+
+    fn as_balance(&self) -> Option<Balance> {
+        Some(Balance::Credit(self.to_owned()))
+    }
 }
 
 impl TransactionMarker for Transaction<Debit> {
@@ -85,6 +93,10 @@ impl TransactionMarker for Transaction<Debit> {
         Self: Sized,
     {
         Some(self)
+    }
+
+    fn as_balance(&self) -> Option<Balance> {
+        Some(Balance::Debit(self.to_owned()))
     }
 }
 
