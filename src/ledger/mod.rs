@@ -41,4 +41,23 @@ impl<'a> Ledger<'a> {
 
         count
     }
+
+    pub fn iter(&self) -> Iter<'_> {
+        todo!()
+    }
 }
+
+pub struct Iter<'a> {
+    slice: &'a [LedgerEntry],
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = (&'a Date<Utc>, &'a Balance);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests;
