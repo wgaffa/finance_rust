@@ -43,9 +43,12 @@ fn ledger_iter() {
         });
     }
 
-    let actual = ledger.iter().collect::<Vec<_>>();
+    let actual = ledger.iter().cloned().collect::<Vec<_>>();
 
-    let expected = entries.iter().map(|(d, b)| (d, b)).collect::<Vec<_>>();
+    let expected = entries
+        .into_iter()
+        .map(|(date, transaction)| LedgerEntry { date, transaction })
+        .collect::<Vec<_>>();
 
     assert_eq!(actual, expected);
 }

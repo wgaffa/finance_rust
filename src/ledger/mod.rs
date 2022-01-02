@@ -3,8 +3,8 @@ use chrono::prelude::*;
 use crate::balance::{TransactionMarker, Balance};
 use crate::entry::{Account, Journal};
 
-#[derive(Debug)]
-struct LedgerEntry {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LedgerEntry {
     date: Date<Utc>,
     transaction: Balance,
 }
@@ -42,8 +42,8 @@ impl<'a> Ledger<'a> {
         count
     }
 
-    pub fn iter(&self) -> Iter<'_> {
-        todo!()
+    pub fn iter(&self) -> impl Iterator<Item = &LedgerEntry> {
+        self.entries.iter()
     }
 }
 
