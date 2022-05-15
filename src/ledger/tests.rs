@@ -3,7 +3,7 @@ use chrono::prelude::*;
 use super::*;
 
 use crate::{
-    balance::{Balance, Transaction},
+    balance::{Balance, Transaction, TransactionMarker},
     entry::{Account, AccountName, Category},
 };
 

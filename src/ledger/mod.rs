@@ -1,10 +1,10 @@
 use chrono::prelude::*;
 
-use crate::balance::{Balance, TransactionMarker};
+use crate::balance::Balance;
 use crate::entry::{Account, Journal};
 
-#[derive(Debug)]
-struct LedgerEntry {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LedgerEntry {
     date: Date<Utc>,
     transaction: Balance,
 }
