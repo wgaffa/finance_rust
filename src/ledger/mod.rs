@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 
-use crate::balance::{TransactionMarker, Balance};
+use crate::balance::{Balance, TransactionMarker};
 use crate::entry::{Account, Journal};
 
 #[derive(Debug)]
@@ -43,19 +43,34 @@ impl<'a> Ledger<'a> {
     }
 
     pub fn iter(&self) -> Iter<'_> {
-        todo!()
+        Iter::new(&self.entries)
     }
 }
 
 pub struct Iter<'a> {
     slice: &'a [LedgerEntry],
+    index: usize,
+}
+
+impl<'a> Iter<'a> {
+    fn new(slice: &'a [LedgerEntry]) -> Self {
+        Self {
+            slice,
+            index: 0,
+        }
+    }
 }
 
 impl<'a> Iterator for Iter<'a> {
     type Item = (&'a Date<Utc>, &'a Balance);
 
     fn next(&mut self) -> Option<Self::Item> {
-        None
+        let index = self.index;
+        self.index += 1;
+
+        self.slice
+            .get(index)
+            .and_then(|x| Some((&x.date, &x.transaction)))
     }
 }
 
