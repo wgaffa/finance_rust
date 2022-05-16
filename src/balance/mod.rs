@@ -220,7 +220,10 @@ impl<T> std::ops::AddAssign for Transaction<T> {
 ///
 /// # Panics
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
-pub fn split(collection: Vec<Balance>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
+pub fn split<I>(collection: I) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>)
+where
+    I: IntoIterator<Item = Balance>
+{
     #[allow(clippy::type_complexity)]
     let (debits, credits): (
         Vec<Box<dyn TransactionMarker>>,
