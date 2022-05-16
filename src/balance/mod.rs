@@ -171,7 +171,7 @@ impl<'a, T> Sum<&'a Self> for Transaction<T> {
     }
 }
 
-impl<'a, T> Sum for Transaction<T> {
+impl<T> Sum for Transaction<T> {
     fn sum<I>(iter: I) -> Self
     where
         I: Iterator<Item = Self>,

@@ -70,7 +70,7 @@ impl<'a> Iterator for Iter<'a> {
 
         self.slice
             .get(index)
-            .and_then(|x| Some((&x.date, &x.transaction)))
+            .map(|x| (&x.date, &x.transaction))
     }
 }
 
