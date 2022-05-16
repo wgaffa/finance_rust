@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 /// assert_eq!(debit, Balance::Debit(Transaction::debit(50)));
 /// assert_eq!(credit, Balance::Credit(Transaction::credit(20)));
 /// ```
-#[derive(Debug, Clone,PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Balance {
     Debit(Transaction<Debit>),
     Credit(Transaction<Credit>),
@@ -166,7 +166,7 @@ impl<'a, T> Sum<&'a Self> for Transaction<T> {
                 amount: 0,
                 phantom: PhantomData,
             },
-            |acc, el| acc + el
+            |acc, el| acc + el,
         )
     }
 }
@@ -181,7 +181,7 @@ impl<'a, T> Sum for Transaction<T> {
                 amount: 0,
                 phantom: PhantomData,
             },
-            |acc, el| acc + el
+            |acc, el| acc + el,
         )
     }
 }
@@ -222,7 +222,10 @@ impl<T> std::ops::AddAssign for Transaction<T> {
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
 pub fn split(collection: Vec<Balance>) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>) {
     #[allow(clippy::type_complexity)]
-    let (debits, credits): (Vec<Box<dyn TransactionMarker>>, Vec<Box<dyn TransactionMarker>>) = collection
+    let (debits, credits): (
+        Vec<Box<dyn TransactionMarker>>,
+        Vec<Box<dyn TransactionMarker>>,
+    ) = collection
         .into_iter()
         .map(|x| match x {
             Balance::Credit(credit) => Box::new(credit) as Box<dyn TransactionMarker>,
@@ -240,13 +243,11 @@ pub fn split(collection: Vec<Balance>) -> (Vec<Transaction<Debit>>, Vec<Transact
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
-        .map(
-            |x|
-            x
-                .as_credit()
+        .map(|x| {
+            x.as_credit()
                 .expect("Trying to split trait objects of incompatible types")
                 .to_owned()
-        )
+        })
         .collect::<Vec<Transaction<Credit>>>();
 
     (debits, credits)
