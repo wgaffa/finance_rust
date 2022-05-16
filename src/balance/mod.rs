@@ -189,18 +189,22 @@ impl<'a, T> Sum for Transaction<T> {
 impl<T> std::ops::Add for Transaction<T> {
     type Output = Self;
 
-    fn add(mut self, rhs: Self) -> Self::Output {
-        self.amount += rhs.amount;
-        self
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            amount: self.amount + rhs.amount,
+            phantom: PhantomData,
+        }
     }
 }
 
 impl<T> std::ops::Add<&Transaction<T>> for Transaction<T> {
     type Output = Self;
 
-    fn add(mut self, rhs: &Self) -> Self::Output {
-        self.amount += rhs.amount;
-        self
+    fn add(self, rhs: &Self) -> Self::Output {
+        Self {
+            amount: self.amount + rhs.amount,
+            phantom: PhantomData,
+        }
     }
 }
 
