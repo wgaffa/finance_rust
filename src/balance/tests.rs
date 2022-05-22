@@ -77,11 +77,7 @@ fn sum_trait_into_iter() {
 
 #[test]
 fn split_transactions() {
-    let vec = vec![
-        Balance::debit(50),
-        Balance::credit(20),
-        Balance::debit(50),
-    ];
+    let vec = vec![Balance::debit(50), Balance::credit(20), Balance::debit(50)];
 
     let (debits, credits) = split(vec);
 

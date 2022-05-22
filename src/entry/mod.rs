@@ -152,11 +152,7 @@ impl DebitIter {
 impl CreditIter {
     fn new() -> Self {
         Self {
-            credits: vec![
-                Category::Liability,
-                Category::Equity,
-                Category::Income,
-            ],
+            credits: vec![Category::Liability, Category::Equity, Category::Income],
         }
     }
 }
@@ -216,7 +212,9 @@ pub struct Chart {
 
 impl Chart {
     pub fn new() -> Self {
-        Self { chart: BTreeMap::new() }
+        Self {
+            chart: BTreeMap::new(),
+        }
     }
 
     /// Insert an account into the chart
@@ -231,7 +229,7 @@ impl Chart {
             None => {
                 self.chart.insert(account.number.0, account);
                 None
-            },
+            }
         }
     }
 
@@ -584,9 +582,7 @@ mod test {
             expected.push(account);
         }
 
-        let actual = chart
-            .iter()
-            .collect::<Vec<_>>();
+        let actual = chart.iter().collect::<Vec<_>>();
 
         assert_eq!(actual, expected);
     }

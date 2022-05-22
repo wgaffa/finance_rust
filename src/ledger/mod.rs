@@ -54,10 +54,7 @@ pub struct Iter<'a> {
 
 impl<'a> Iter<'a> {
     fn new(slice: &'a [LedgerEntry]) -> Self {
-        Self {
-            slice,
-            index: 0,
-        }
+        Self { slice, index: 0 }
     }
 }
 
@@ -68,9 +65,7 @@ impl<'a> Iterator for Iter<'a> {
         let index = self.index;
         self.index += 1;
 
-        self.slice
-            .get(index)
-            .map(|x| (&x.date, &x.transaction))
+        self.slice.get(index).map(|x| (&x.date, &x.transaction))
     }
 }
 
