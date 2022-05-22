@@ -50,7 +50,7 @@ pub struct Debit;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Credit;
 
-pub(crate) trait TransactionMarker: Any + std::fmt::Debug {
+pub(crate) trait TransactionMarker: std::fmt::Debug {
     fn as_any(&self) -> &dyn Any;
 
     fn as_debit(&self) -> Option<&Transaction<Debit>> {
@@ -61,9 +61,7 @@ pub(crate) trait TransactionMarker: Any + std::fmt::Debug {
         None
     }
 
-    fn as_balance(&self) -> Option<Balance> {
-        None
-    }
+    fn as_balance(&self) -> Balance;
 }
 
 impl TransactionMarker for Transaction<Credit> {
@@ -78,8 +76,8 @@ impl TransactionMarker for Transaction<Credit> {
         Some(self)
     }
 
-    fn as_balance(&self) -> Option<Balance> {
-        Some(Balance::Credit(self.to_owned()))
+    fn as_balance(&self) -> Balance {
+        Balance::Credit(self.to_owned())
     }
 }
 
@@ -95,8 +93,8 @@ impl TransactionMarker for Transaction<Debit> {
         Some(self)
     }
 
-    fn as_balance(&self) -> Option<Balance> {
-        Some(Balance::Debit(self.to_owned()))
+    fn as_balance(&self) -> Balance {
+        Balance::Debit(self.to_owned())
     }
 }
 
@@ -222,7 +220,7 @@ impl<T> std::ops::AddAssign for Transaction<T> {
 /// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
 pub fn split<I>(collection: I) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>)
 where
-    I: IntoIterator<Item = Balance>
+    I: IntoIterator<Item = Balance>,
 {
     #[allow(clippy::type_complexity)]
     let (debits, credits): (

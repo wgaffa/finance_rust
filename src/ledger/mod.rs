@@ -31,7 +31,7 @@ impl<'a> Ledger<'a> {
             if entry.account() == self.account {
                 let ledger_entry = LedgerEntry {
                     date: journal.date().to_owned(),
-                    transaction: entry.transaction.as_balance().unwrap(),
+                    transaction: entry.transaction.as_balance(),
                 };
 
                 self.entries.push(ledger_entry);

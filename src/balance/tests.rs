@@ -92,15 +92,6 @@ fn split_transactions() {
     assert_eq!(credit_sum.amount, 20);
 }
 
-#[derive(Debug)]
-struct MockTest;
-
-impl TransactionMarker for MockTest {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 #[test]
 fn to_balance_should_return_debit_balance_given_transaction_debit() {
     let debit = Transaction::debit(50);

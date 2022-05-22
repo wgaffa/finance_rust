@@ -9,11 +9,7 @@ use crate::{
 
 #[test]
 fn ledger_iter() {
-    let account = Account::new(
-        101.into(),
-        AccountName::new("test").unwrap(),
-        Category::Asset,
-    );
+    let account = Account::new(101, AccountName::new("test").unwrap(), Category::Asset);
     let mut ledger = Ledger::new(&account);
 
     let transactions: Vec<Box<dyn TransactionMarker>> = vec![

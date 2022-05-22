@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 chrono = "0.4.19"
 enum-iterator = "0.7.0"
+thiserror = "1.0.31"
 
 [dev-dependencies]
 test-case = "1.2.0"

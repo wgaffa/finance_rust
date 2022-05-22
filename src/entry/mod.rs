@@ -4,7 +4,10 @@ use std::mem;
 use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
-use crate::balance::{Credit, Debit, Transaction, TransactionMarker};
+use crate::{
+    balance::{Balance, Credit, Debit, Transaction, TransactionMarker},
+    error::JournalValidationError,
+};
 
 #[derive(Debug)]
 struct EntryDetails {
@@ -185,8 +188,12 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn new(number: AccountNumber, name: AccountName, element: Category) -> Self {
-        Self { number, name, category: element }
+    pub fn new<T: Into<AccountNumber>>(number: T, name: AccountName, element: Category) -> Self {
+        Self {
+            number: number.into(),
+            name,
+            category: element,
+        }
     }
 
     pub fn number(&self) -> &AccountNumber {
@@ -236,15 +243,26 @@ impl Chart {
 /// This describes a "line" in a journal and notes one account being affected
 /// with a debit or credit transaction.
 #[derive(Debug)]
-pub struct JournalEntry {
-    account: Account,
+pub struct JournalEntry<'a> {
+    account: &'a Account,
     pub(crate) transaction: Box<dyn TransactionMarker>,
 }
 
-impl JournalEntry {
+impl<'a> JournalEntry<'a> {
+    pub fn new<T: Into<Balance>>(account: &'a Account, transaction: T) -> Self {
+        let transaction = match transaction.into() {
+            Balance::Credit(x) => Box::new(x) as Box<dyn TransactionMarker>,
+            Balance::Debit(x) => Box::new(x),
+        };
+
+        Self {
+            account,
+            transaction,
+        }
+    }
     /// Returns a reference to the [Account] that is affected by this transaction
     pub fn account(&self) -> &Account {
-        &self.account
+        self.account
     }
 
     /// Get the debit transaction for entry.
@@ -275,12 +293,12 @@ impl JournalEntry {
 /// > The journal describes which account is being debited and which account is being
 /// > credited, the date, the reason for the journal and a reference.
 #[derive(Debug)]
-pub struct Journal {
+pub struct Journal<'a> {
     details: EntryDetails,
-    entries: Vec<JournalEntry>,
+    entries: Vec<JournalEntry<'a>>,
 }
 
-impl Journal {
+impl<'a> Journal<'a> {
     pub fn new(date: Date<Utc>) -> Self {
         Self {
             details: EntryDetails {
@@ -303,8 +321,11 @@ impl Journal {
         &self.details.date
     }
 
-    pub fn push(&mut self, entry: JournalEntry) {
-        self.entries.push(entry);
+    pub fn push<T>(&mut self, account: &'a Account, transaction: T)
+    where
+        T: Into<Balance>,
+    {
+        self.entries.push(JournalEntry::new(account, transaction));
     }
 
     pub fn as_slice(&self) -> &[JournalEntry] {
@@ -314,46 +335,74 @@ impl Journal {
     pub fn iter(&self) -> impl Iterator<Item = &JournalEntry> {
         self.entries.iter()
     }
+
+    pub fn validate(self) -> Result<ValidatedJournal<'a>, JournalValidationError> {
+        let balance =
+            self.entries
+                .iter()
+                .fold((0, 0), |(d, c), x| match x.transaction.as_balance() {
+                    Balance::Credit(x) => (d, c + x.amount()),
+                    Balance::Debit(x) => (d + x.amount(), c),
+                });
+
+        if balance.0 == balance.1 {
+            Ok(ValidatedJournal {
+                details: self.details,
+                entries: self.entries,
+            })
+        } else {
+            Err(JournalValidationError {
+                debit: Transaction::debit(balance.0),
+                credit: Transaction::credit(balance.1),
+            })
+        }
+    }
 }
 
-impl<'a> IntoIterator for &'a Journal {
-    type IntoIter = std::slice::Iter<'a, JournalEntry>;
-    type Item = &'a JournalEntry;
+impl<'a> IntoIterator for &'a Journal<'a> {
+    type IntoIter = std::slice::Iter<'a, JournalEntry<'a>>;
+    type Item = &'a JournalEntry<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.entries.iter()
     }
 }
 
-#[derive(Debug, Default)]
-pub struct DayBook {
-    journals: Vec<Journal>,
+#[derive(Debug)]
+pub struct ValidatedJournal<'b> {
+    details: EntryDetails,
+    entries: Vec<JournalEntry<'b>>,
 }
 
-impl DayBook {
+#[derive(Debug, Default)]
+pub struct DayBook<'a> {
+    journals: Vec<Journal<'a>>,
+}
+
+impl<'a> DayBook<'a> {
     pub fn new() -> Self {
         Self {
             journals: Vec::new(),
         }
     }
 
-    pub fn push(&mut self, journal: Journal) {
+    pub fn push(&mut self, journal: Journal<'a>) {
         self.journals.push(journal);
     }
 }
 
-impl IntoIterator for DayBook {
-    type IntoIter = std::vec::IntoIter<Journal>;
-    type Item = Journal;
+impl<'a> IntoIterator for DayBook<'a> {
+    type IntoIter = std::vec::IntoIter<Journal<'a>>;
+    type Item = Journal<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.journals.into_iter()
     }
 }
 
-impl<'a> IntoIterator for &'a DayBook {
-    type IntoIter = std::slice::Iter<'a, Journal>;
-    type Item = &'a Journal;
+impl<'a> IntoIterator for &'a DayBook<'_> {
+    type IntoIter = std::slice::Iter<'a, Journal<'a>>;
+    type Item = &'a Journal<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.journals.iter()
@@ -377,7 +426,7 @@ mod test {
 
     #[test_case(Transaction::debit(50), Some(Transaction::debit(50)))]
     #[test_case(Transaction::credit(50), None)]
-    fn journal_entry_debit<T>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
+    fn journal_entry_debit<T: 'static>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
     where
         Transaction<T>: TransactionMarker,
     {
@@ -388,7 +437,7 @@ mod test {
         };
 
         let actual = JournalEntry {
-            account,
+            account: &account,
             transaction: Box::new(tx),
         };
 
@@ -397,8 +446,10 @@ mod test {
 
     #[test_case(Transaction::credit(50), Some(Transaction::credit(50)))]
     #[test_case(Transaction::debit(50), None)]
-    fn journal_entry_credit<T>(tx: Transaction<T>, expected: Option<Transaction<Credit>>)
-    where
+    fn journal_entry_credit<T: 'static, 'a>(
+        tx: Transaction<T>,
+        expected: Option<Transaction<Credit>>,
+    ) where
         Transaction<T>: TransactionMarker,
     {
         let account = Account {
@@ -408,7 +459,7 @@ mod test {
         };
 
         let actual = JournalEntry {
-            account,
+            account: &account,
             transaction: Box::new(tx),
         };
 
@@ -420,14 +471,14 @@ mod test {
         let mut chart = Chart::new();
 
         chart.insert(Account::new(
-            101.into(),
+            101,
             AccountName::new("Test").unwrap(),
-            Category::Expenses
+            Category::Expenses,
         ));
         chart.insert(Account::new(
-            101.into(),
+            101,
             AccountName::new("Duplicate number").unwrap(),
-            Category::Asset
+            Category::Asset,
         ));
 
         assert_eq!(chart.chart.len(), 1);
@@ -438,21 +489,17 @@ mod test {
         let mut chart = Chart::new();
 
         chart.insert(Account::new(
-            101.into(),
+            101,
             AccountName::new("Test").unwrap(),
-            Category::Expenses
+            Category::Expenses,
         ));
         let actual = chart.insert(Account::new(
-            101.into(),
+            101,
             AccountName::new("Duplicate number").unwrap(),
-            Category::Asset
+            Category::Asset,
         ));
 
-        let expected = Account::new(
-            101.into(),
-            AccountName::new("Test").unwrap(),
-            Category::Expenses
-        );
+        let expected = Account::new(101, AccountName::new("Test").unwrap(), Category::Expenses);
 
         assert_eq!(actual, Some(expected));
     }
@@ -462,9 +509,9 @@ mod test {
         let mut chart = Chart::new();
 
         let actual = chart.insert(Account::new(
-            101.into(),
+            101,
             AccountName::new("Test").unwrap(),
-            Category::Income
+            Category::Income,
         ));
 
         assert_eq!(actual, None);
@@ -484,20 +531,16 @@ mod test {
         let mut chart = Chart::new();
 
         let account = Account::new(
-            601.into(),
+            601,
             AccountName(String::from("Grocery")),
             Category::Expenses,
         );
 
         chart.insert(account.clone());
 
-        let expected = vec![
-            &account
-        ];
+        let expected = vec![&account];
 
-        let actual = chart
-            .iter()
-            .collect::<Vec<_>>();
+        let actual = chart.iter().collect::<Vec<_>>();
 
         assert_eq!(actual, expected);
     }
@@ -508,34 +551,26 @@ mod test {
 
         let mut accounts = vec![
             Account::new(
-                201.into(),
+                201,
                 AccountName::new("Credit Loan").unwrap(),
                 Category::Liability,
             ),
+            Account::new(401, AccountName::new("Salary").unwrap(), Category::Income),
+            Account::new(502, AccountName::new("Phone").unwrap(), Category::Expenses),
             Account::new(
-                401.into(),
-                AccountName::new("Salary").unwrap(),
-                Category::Income,
-            ),
-            Account::new(
-                502.into(),
-                AccountName::new("Phone").unwrap(),
-                Category::Expenses,
-            ),
-            Account::new(
-                501.into(),
+                501,
                 AccountName::new("Internet").unwrap(),
                 Category::Expenses,
             ),
             Account::new(
-                202.into(),
+                202,
                 AccountName::new("Bank Loan").unwrap(),
                 Category::Liability,
             ),
             Account::new(
-                101.into(),
+                101,
                 AccountName::new("Bank Account").unwrap(),
-                Category::Asset
+                Category::Asset,
             ),
         ];
 
