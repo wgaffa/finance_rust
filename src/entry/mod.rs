@@ -372,6 +372,34 @@ pub struct ValidatedJournal<'b> {
     entries: Vec<JournalEntry<'b>>,
 }
 
+impl ValidatedJournal<'_> {
+    pub fn description(&self) -> Option<&String> {
+        self.details.description.as_ref()
+    }
+
+    pub fn date(&self) -> &Date<Utc> {
+        &self.details.date
+    }
+
+    pub fn as_slice(&self) -> &[JournalEntry] {
+        self.entries.as_slice()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &JournalEntry> {
+        self.entries.iter()
+    }
+
+}
+
+impl<'a> IntoIterator for &'a ValidatedJournal<'a> {
+    type IntoIter = std::slice::Iter<'a, JournalEntry<'a>>;
+    type Item = &'a JournalEntry<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter()
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct DayBook<'a> {
     journals: Vec<Journal<'a>>,
