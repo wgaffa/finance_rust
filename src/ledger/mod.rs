@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 
 use crate::balance::Balance;
-use crate::entry::{Account, Journal};
+use crate::entry::{Account, ValidatedJournal};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LedgerEntry {
@@ -25,13 +25,14 @@ impl<'a> Ledger<'a> {
 
     /// Push an entry in the ledger only if the entry is for
     /// the same account
-    pub fn push(&mut self, journal: &'a Journal) -> usize {
+    pub fn push(&mut self, journal: ValidatedJournal) -> usize {
         let mut count = 0;
+        let date = journal.date().to_owned();
         for entry in journal {
             if entry.account() == self.account {
                 let ledger_entry = LedgerEntry {
-                    date: journal.date().to_owned(),
-                    transaction: entry.transaction.as_balance(),
+                    date,
+                    transaction: entry.transaction,
                 };
 
                 self.entries.push(ledger_entry);

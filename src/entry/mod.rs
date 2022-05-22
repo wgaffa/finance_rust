@@ -5,11 +5,11 @@ use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
 use crate::{
-    balance::{Balance, Credit, Debit, Transaction, TransactionMarker},
+    balance::{Balance, Credit, Debit, Transaction},
     error::JournalValidationError,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct EntryDetails {
     date: Date<Utc>,
     description: Option<String>,
@@ -240,22 +240,17 @@ impl Chart {
 
 /// This describes a "line" in a journal and notes one account being affected
 /// with a debit or credit transaction.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JournalEntry<'a> {
     account: &'a Account,
-    pub(crate) transaction: Box<dyn TransactionMarker>,
+    pub(crate) transaction: Balance,
 }
 
 impl<'a> JournalEntry<'a> {
     pub fn new<T: Into<Balance>>(account: &'a Account, transaction: T) -> Self {
-        let transaction = match transaction.into() {
-            Balance::Credit(x) => Box::new(x) as Box<dyn TransactionMarker>,
-            Balance::Debit(x) => Box::new(x),
-        };
-
         Self {
             account,
-            transaction,
+            transaction: transaction.into(),
         }
     }
     /// Returns a reference to the [Account] that is affected by this transaction
@@ -268,7 +263,7 @@ impl<'a> JournalEntry<'a> {
     /// If this is not a debit entry, None is returned, otherwise
     /// Some(&Transaction<Debit>>) is returned.
     pub fn debit(&self) -> Option<&Transaction<Debit>> {
-        self.transaction.as_any().downcast_ref()
+        self.transaction.as_debit()
     }
 
     /// Get the credit transaction for entry.
@@ -276,7 +271,7 @@ impl<'a> JournalEntry<'a> {
     /// If this is not a credit entry, None is returned, otherwise
     /// Some(&Transaction<Credit>>) is returned.
     pub fn credit(&self) -> Option<&Transaction<Credit>> {
-        self.transaction.as_any().downcast_ref()
+        self.transaction.as_credit()
     }
 }
 
@@ -290,7 +285,7 @@ impl<'a> JournalEntry<'a> {
 /// > an adjustment to the accounts such as if a correction has to be made.
 /// > The journal describes which account is being debited and which account is being
 /// > credited, the date, the reason for the journal and a reference.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Journal<'a> {
     details: EntryDetails,
     entries: Vec<JournalEntry<'a>>,
@@ -335,13 +330,13 @@ impl<'a> Journal<'a> {
     }
 
     pub fn validate(self) -> Result<ValidatedJournal<'a>, JournalValidationError> {
-        let balance =
-            self.entries
-                .iter()
-                .fold((0, 0), |(d, c), x| match x.transaction.as_balance() {
-                    Balance::Credit(x) => (d, c + x.amount()),
-                    Balance::Debit(x) => (d + x.amount(), c),
-                });
+        let balance = self
+            .entries
+            .iter()
+            .fold((0, 0), |(d, c), x| match &x.transaction {
+                Balance::Credit(x) => (d, c + x.amount()),
+                Balance::Debit(x) => (d + x.amount(), c),
+            });
 
         if balance.0 == balance.1 {
             Ok(ValidatedJournal {
@@ -357,6 +352,15 @@ impl<'a> Journal<'a> {
     }
 }
 
+impl<'a> IntoIterator for Journal<'a> {
+    type IntoIter = std::vec::IntoIter<JournalEntry<'a>>;
+    type Item = JournalEntry<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.into_iter()
+    }
+}
+
 impl<'a> IntoIterator for &'a Journal<'a> {
     type IntoIter = std::slice::Iter<'a, JournalEntry<'a>>;
     type Item = &'a JournalEntry<'a>;
@@ -366,7 +370,7 @@ impl<'a> IntoIterator for &'a Journal<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedJournal<'b> {
     details: EntryDetails,
     entries: Vec<JournalEntry<'b>>,
@@ -388,7 +392,15 @@ impl ValidatedJournal<'_> {
     pub fn iter(&self) -> impl Iterator<Item = &JournalEntry> {
         self.entries.iter()
     }
+}
 
+impl<'a> IntoIterator for ValidatedJournal<'a> {
+    type IntoIter = std::vec::IntoIter<JournalEntry<'a>>;
+    type Item = JournalEntry<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.into_iter()
+    }
 }
 
 impl<'a> IntoIterator for &'a ValidatedJournal<'a> {
@@ -397,6 +409,12 @@ impl<'a> IntoIterator for &'a ValidatedJournal<'a> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.entries.iter()
+    }
+}
+
+impl PartialEq<Journal<'_>> for ValidatedJournal<'_> {
+    fn eq(&self, other: &Journal<'_>) -> bool {
+        self.details == other.details && self.entries == other.entries
     }
 }
 
@@ -437,9 +455,32 @@ impl<'a> IntoIterator for &'a DayBook<'_> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use std::any::Any;
 
+    use super::*;
     use test_case::test_case;
+
+    use crate::balance::TransactionMarker;
+
+    pub fn is_debit(x: &dyn Any) -> bool {
+        x.is::<Transaction<Debit>>()
+    }
+
+    pub fn to_debit(x: &dyn Any) -> &Transaction<Debit> {
+        if let Some(tx) = x.downcast_ref() {
+            tx
+        } else {
+            unimplemented!()
+        }
+    }
+
+    pub fn to_credit(x: &dyn Any) -> &Transaction<Credit> {
+        if let Some(tx) = x.downcast_ref() {
+            tx
+        } else {
+            unimplemented!()
+        }
+    }
 
     #[test_case("No leading" => Some(AccountName(String::from("No leading"))))]
     #[test_case("   Leading" => Some(AccountName(String::from("Leading"))))]
@@ -462,9 +503,17 @@ mod test {
             category: Category::Asset,
         };
 
+        let tx = if is_debit(&tx) {
+            let debit = to_debit(&tx).to_owned();
+            Balance::Debit(debit)
+        } else {
+            let credit = to_credit(&tx).to_owned();
+            Balance::Credit(credit)
+        };
+
         let actual = JournalEntry {
             account: &account,
-            transaction: Box::new(tx),
+            transaction: tx,
         };
 
         assert_eq!(actual.debit(), expected.as_ref());
@@ -484,9 +533,17 @@ mod test {
             category: Category::Asset,
         };
 
+        let tx = if is_debit(&tx) {
+            let debit = to_debit(&tx).to_owned();
+            Balance::Debit(debit)
+        } else {
+            let credit = to_credit(&tx).to_owned();
+            Balance::Credit(credit)
+        };
+
         let actual = JournalEntry {
             account: &account,
-            transaction: Box::new(tx),
+            transaction: tx,
         };
 
         assert_eq!(actual.credit(), expected.as_ref());

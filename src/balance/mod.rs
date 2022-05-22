@@ -30,6 +30,20 @@ impl Balance {
     pub fn credit(amount: u32) -> Self {
         Self::Credit(Transaction::credit(amount))
     }
+
+    pub fn as_debit(&self) -> Option<&Transaction<Debit>> {
+        match self {
+            Balance::Credit(_) => None,
+            Balance::Debit(ref x) => Some(x),
+        }
+    }
+
+    pub fn as_credit(&self) -> Option<&Transaction<Credit>> {
+        match self {
+            Balance::Debit(_) => None,
+            Balance::Credit(ref x) => Some(x),
+        }
+    }
 }
 
 impl From<Transaction<Debit>> for Balance {
