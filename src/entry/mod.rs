@@ -449,7 +449,7 @@ mod test {
     use super::*;
     use test_case::test_case;
 
-    use crate::balance::{TransactionMarker, Debit, Credit};
+    use crate::balance::{Credit, Debit, TransactionMarker};
 
     pub fn is_debit(x: &dyn Any) -> bool {
         x.is::<Transaction<Debit>>()
@@ -508,10 +508,8 @@ mod test {
     }
 
     #[test_case(Transaction::credit(50), Transaction::credit(50))]
-    fn journal_entry_credit<T: 'static, 'a>(
-        tx: Transaction<T>,
-        expected: Transaction<Credit>,
-    ) where
+    fn journal_entry_credit<T: 'static, 'a>(tx: Transaction<T>, expected: Transaction<Credit>)
+    where
         Transaction<T>: TransactionMarker,
     {
         let account = Account {
