@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 /// assert_eq!(debit, Balance::Debit(Transaction::debit(50)));
 /// assert_eq!(credit, Balance::Credit(Transaction::credit(20)));
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Balance {
     Debit(Transaction<Debit>),
     Credit(Transaction<Credit>),
@@ -58,10 +58,22 @@ impl From<Transaction<Credit>> for Balance {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl From<Box<Transaction<Debit>>> for Balance {
+    fn from(value: Box<Transaction<Debit>>) -> Self {
+        Self::Debit(Box::into_inner(value))
+    }
+}
+
+impl From<Box<Transaction<Credit>>> for Balance {
+    fn from(value: Box<Transaction<Credit>>) -> Self {
+        Self::Credit(Box::into_inner(value))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Debit;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Credit;
 
 pub(crate) trait TransactionMarker: std::fmt::Debug {
@@ -100,20 +112,13 @@ impl TransactionMarker for Transaction<Debit> {
         self
     }
 
-    fn as_debit(&self) -> Option<&Transaction<Debit>>
-    where
-        Self: Sized,
-    {
-        Some(self)
-    }
-
     fn as_balance(&self) -> Balance {
         Balance::Debit(self.to_owned())
     }
 }
 
 /// Data for a single transaction holding the entry type and amount
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Transaction<T> {
     amount: u32,
     phantom: PhantomData<T>,
