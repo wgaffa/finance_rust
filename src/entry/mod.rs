@@ -5,7 +5,7 @@ use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
 use crate::{
-    balance::{Balance, Credit, Debit, Transaction},
+    balance::{Balance, Transaction},
     error::JournalValidationError,
 };
 
@@ -258,20 +258,9 @@ impl<'a> JournalEntry<'a> {
         self.account
     }
 
-    /// Get the debit transaction for entry.
-    ///
-    /// If this is not a debit entry, None is returned, otherwise
-    /// Some(&Transaction<Debit>>) is returned.
-    pub fn debit(&self) -> Option<&Transaction<Debit>> {
-        self.transaction.as_debit()
-    }
-
-    /// Get the credit transaction for entry.
-    ///
-    /// If this is not a credit entry, None is returned, otherwise
-    /// Some(&Transaction<Credit>>) is returned.
-    pub fn credit(&self) -> Option<&Transaction<Credit>> {
-        self.transaction.as_credit()
+    /// Get the transaction balance for this entry.
+    pub fn balance(&self) -> &Balance {
+        &self.transaction
     }
 }
 
@@ -460,7 +449,7 @@ mod test {
     use super::*;
     use test_case::test_case;
 
-    use crate::balance::TransactionMarker;
+    use crate::balance::{TransactionMarker, Debit, Credit};
 
     pub fn is_debit(x: &dyn Any) -> bool {
         x.is::<Transaction<Debit>>()
@@ -491,9 +480,8 @@ mod test {
         AccountName::new(input)
     }
 
-    #[test_case(Transaction::debit(50), Some(Transaction::debit(50)))]
-    #[test_case(Transaction::credit(50), None)]
-    fn journal_entry_debit<T: 'static>(tx: Transaction<T>, expected: Option<Transaction<Debit>>)
+    #[test_case(Transaction::debit(50), Transaction::debit(50))]
+    fn journal_entry_debit<T: 'static>(tx: Transaction<T>, expected: Transaction<Debit>)
     where
         Transaction<T>: TransactionMarker,
     {
@@ -516,14 +504,13 @@ mod test {
             transaction: tx,
         };
 
-        assert_eq!(actual.debit(), expected.as_ref());
+        assert_eq!(actual.balance(), &Balance::Debit(expected));
     }
 
-    #[test_case(Transaction::credit(50), Some(Transaction::credit(50)))]
-    #[test_case(Transaction::debit(50), None)]
+    #[test_case(Transaction::credit(50), Transaction::credit(50))]
     fn journal_entry_credit<T: 'static, 'a>(
         tx: Transaction<T>,
-        expected: Option<Transaction<Credit>>,
+        expected: Transaction<Credit>,
     ) where
         Transaction<T>: TransactionMarker,
     {
@@ -546,7 +533,7 @@ mod test {
             transaction: tx,
         };
 
-        assert_eq!(actual.credit(), expected.as_ref());
+        assert_eq!(actual.balance(), &Balance::Credit(expected));
     }
 
     #[test]

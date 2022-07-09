@@ -30,20 +30,6 @@ impl Balance {
     pub fn credit(amount: u32) -> Self {
         Self::Credit(Transaction::credit(amount))
     }
-
-    pub fn as_debit(&self) -> Option<&Transaction<Debit>> {
-        match self {
-            Balance::Credit(_) => None,
-            Balance::Debit(ref x) => Some(x),
-        }
-    }
-
-    pub fn as_credit(&self) -> Option<&Transaction<Credit>> {
-        match self {
-            Balance::Debit(_) => None,
-            Balance::Credit(ref x) => Some(x),
-        }
-    }
 }
 
 impl From<Transaction<Debit>> for Balance {
@@ -79,27 +65,12 @@ pub struct Credit;
 pub(crate) trait TransactionMarker: std::fmt::Debug {
     fn as_any(&self) -> &dyn Any;
 
-    fn as_debit(&self) -> Option<&Transaction<Debit>> {
-        None
-    }
-
-    fn as_credit(&self) -> Option<&Transaction<Credit>> {
-        None
-    }
-
     fn as_balance(&self) -> Balance;
 }
 
 impl TransactionMarker for Transaction<Credit> {
     fn as_any(&self) -> &dyn Any {
         self
-    }
-
-    fn as_credit(&self) -> Option<&Transaction<Credit>>
-    where
-        Self: Sized,
-    {
-        Some(self)
     }
 
     fn as_balance(&self) -> Balance {
@@ -258,13 +229,13 @@ where
     // it's not a credit type. Otherwise we just move on.
     let debits = debits
         .into_iter()
-        // .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap().to_owned())
-        .map(|x| x.as_debit().unwrap().to_owned())
+        .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap().to_owned())
+        // .map(|x| x.as_balance().unwrap().to_owned())
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
         .map(|x| {
-            x.as_credit()
+            x.as_any().downcast_ref::<Transaction<Credit>>()
                 .expect("Trying to split trait objects of incompatible types")
                 .to_owned()
         })

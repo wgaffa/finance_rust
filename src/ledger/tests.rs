@@ -3,7 +3,7 @@ use chrono::prelude::*;
 use super::*;
 
 use crate::{
-    balance::{Balance, Transaction, TransactionMarker},
+    balance::Balance,
     entry::{Account, AccountName, Category},
 };
 
@@ -12,23 +12,23 @@ fn ledger_iter() {
     let account = Account::new(101, AccountName::new("test").unwrap(), Category::Asset);
     let mut ledger = Ledger::new(&account);
 
-    let transactions: Vec<Box<dyn TransactionMarker>> = vec![
-        Box::new(Transaction::debit(150)),
-        Box::new(Transaction::debit(270)),
-        Box::new(Transaction::credit(50)),
+    let transactions = vec![
+        Balance::debit(150),
+        Balance::debit(270),
+        Balance::credit(50),
     ];
     let entries = vec![
         (
             Utc.ymd(2021, 2, 10),
-            Balance::Debit(transactions[0].as_debit().unwrap().to_owned()),
+            transactions[0],
         ),
         (
             Utc.ymd(2021, 2, 15),
-            Balance::Debit(transactions[1].as_debit().unwrap().to_owned()),
+            transactions[1],
         ),
         (
             Utc.ymd(2021, 3, 5),
-            Balance::Credit(transactions[2].as_credit().unwrap().to_owned()),
+            transactions[2],
         ),
     ];
 
