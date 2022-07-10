@@ -11,5 +11,7 @@ enum-iterator = "0.7.0"
 thiserror = "1.0.31"
 
 [dev-dependencies]
+quickcheck = "1.0.3"
+quickcheck_macros = "1.0.0"
 test-case = "1.2.0"
 

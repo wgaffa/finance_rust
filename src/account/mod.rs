@@ -1,5 +1,9 @@
 use std::fmt;
 
+mod category;
+
+pub use category::Category;
+
 /// An account number to identify an account.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Number(u32);
