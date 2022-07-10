@@ -1,24 +1,25 @@
 use chrono::prelude::*;
 
 use personal_finance::{
+    account,
     balance::Transaction,
-    entry::{Account, AccountName, Category, Journal},
+    entry::{Account, Category, Journal},
 };
 
 pub fn accounts() -> Vec<Account> {
     vec![
-            Account::new(
-                101,
-                AccountName::new("Bank account").unwrap(),
-                Category::Asset,
-            ),
-            Account::new(102, AccountName::new("Cash").unwrap(), Category::Asset),
-            Account::new(
-                501,
-                AccountName::new("Groceries").unwrap(),
-                Category::Expenses,
-            ),
-        ]
+        Account::new(
+            101,
+            account::Name::new("Bank account").unwrap(),
+            Category::Asset,
+        ),
+        Account::new(102, account::Name::new("Cash").unwrap(), Category::Asset),
+        Account::new(
+            501,
+            account::Name::new("Groceries").unwrap(),
+            Category::Expenses,
+        ),
+    ]
 }
 
 #[test]

@@ -5,6 +5,7 @@ use chrono::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
 use crate::{
+    account,
     balance::{Balance, Transaction},
     error::JournalValidationError,
 };
@@ -13,94 +14,6 @@ use crate::{
 struct EntryDetails {
     date: Date<Utc>,
     description: Option<String>,
-}
-
-/// An account number to identify an account.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AccountNumber(u32);
-
-impl AccountNumber {
-    /// Create a new [AccountNumber] with a positive integer
-    pub fn new(value: u32) -> Self {
-        Self(value)
-    }
-}
-
-impl std::convert::From<u32> for AccountNumber {
-    fn from(value: u32) -> Self {
-        Self(value)
-    }
-}
-
-impl std::convert::From<AccountNumber> for u32 {
-    fn from(number: AccountNumber) -> Self {
-        number.0
-    }
-}
-
-impl std::fmt::Display for AccountNumber {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// An account name is a trimmed non-empty string.
-///
-/// # Examples
-/// ```
-/// use personal_finance::entry::AccountName;
-///
-/// let name = AccountName::new("  My Bank Account\n");
-/// assert_eq!(name.unwrap(), "My Bank Account");
-///
-/// let name = AccountName::new("    ");
-/// assert_eq!(name, None);
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AccountName(String);
-
-impl AccountName {
-    /// Create a new AccountName
-    ///
-    /// This trims and returns Some(AccountName) if it is not an empty string,
-    /// otherwise it return None.
-    pub fn new<T: AsRef<str>>(name: T) -> Option<Self> {
-        let name = name.as_ref().trim().to_owned();
-        if name.is_empty() {
-            None
-        } else {
-            Some(AccountName(name))
-        }
-    }
-
-    /// Move the inner string out of AccountName thus consuming it
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl PartialEq<String> for AccountName {
-    fn eq(&self, other: &String) -> bool {
-        self.0 == *other
-    }
-}
-
-impl PartialEq<&str> for AccountName {
-    fn eq(&self, other: &&str) -> bool {
-        self.0 == *other
-    }
-}
-
-impl PartialOrd<String> for AccountName {
-    fn partial_cmp(&self, other: &String) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialOrd<&str> for AccountName {
-    fn partial_cmp(&self, other: &&str) -> Option<std::cmp::Ordering> {
-        self.0.as_str().partial_cmp(*other)
-    }
 }
 
 /// These are the different types of an Account can be associated with.
@@ -178,13 +91,13 @@ impl IntoIterator for CreditIter {
 /// An account with a name and identifier
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Account {
-    number: AccountNumber,
-    name: AccountName,
+    number: account::Number,
+    name: account::Name,
     category: Category,
 }
 
 impl Account {
-    pub fn new<T: Into<AccountNumber>>(number: T, name: AccountName, element: Category) -> Self {
+    pub fn new<T: Into<account::Number>>(number: T, name: account::Name, element: Category) -> Self {
         Self {
             number: number.into(),
             name,
@@ -192,11 +105,11 @@ impl Account {
         }
     }
 
-    pub fn number(&self) -> &AccountNumber {
+    pub fn number(&self) -> &account::Number {
         &self.number
     }
 
-    pub fn name(&self) -> &AccountName {
+    pub fn name(&self) -> &account::Name {
         &self.name
     }
 
@@ -221,13 +134,13 @@ impl Chart {
     ///
     /// Returns the old value if it already contained a value, otherwise it returns None.
     pub fn insert(&mut self, account: Account) -> Option<Account> {
-        match self.chart.get_mut(&account.number.0) {
+        match self.chart.get_mut(&account.number.number()) {
             Some(x) => {
                 let old = mem::replace(x, account);
                 Some(old)
             }
             None => {
-                self.chart.insert(account.number.0, account);
+                self.chart.insert(account.number.number(), account);
                 None
             }
         }
@@ -449,7 +362,10 @@ mod test {
     use super::*;
     use test_case::test_case;
 
-    use crate::balance::{Credit, Debit, TransactionMarker};
+    use crate::{
+        account,
+        balance::{Credit, Debit, TransactionMarker},
+    };
 
     pub fn is_debit(x: &dyn Any) -> bool {
         x.is::<Transaction<Debit>>()
@@ -471,23 +387,14 @@ mod test {
         }
     }
 
-    #[test_case("No leading" => Some(AccountName(String::from("No leading"))))]
-    #[test_case("   Leading" => Some(AccountName(String::from("Leading"))))]
-    #[test_case("Trailing\t" => Some(AccountName(String::from("Trailing"))))]
-    #[test_case("\n Both \n" => Some(AccountName(String::from("Both"))))]
-    #[test_case("\n  \n" => None)]
-    fn account_name_new(input: &str) -> Option<AccountName> {
-        AccountName::new(input)
-    }
-
     #[test_case(Transaction::debit(50), Transaction::debit(50))]
     fn journal_entry_debit<T: 'static>(tx: Transaction<T>, expected: Transaction<Debit>)
     where
         Transaction<T>: TransactionMarker,
     {
         let account = Account {
-            name: AccountName(String::from("Test")),
-            number: AccountNumber(54),
+            name: account::Name::new(String::from("Test")).unwrap(),
+            number: account::Number::new(54),
             category: Category::Asset,
         };
 
@@ -513,8 +420,8 @@ mod test {
         Transaction<T>: TransactionMarker,
     {
         let account = Account {
-            name: AccountName(String::from("Test")),
-            number: AccountNumber(54),
+            name: account::Name::new(String::from("Test")).unwrap(),
+            number: account::Number::new(54),
             category: Category::Asset,
         };
 
@@ -540,12 +447,12 @@ mod test {
 
         chart.insert(Account::new(
             101,
-            AccountName::new("Test").unwrap(),
+            account::Name::new("Test").unwrap(),
             Category::Expenses,
         ));
         chart.insert(Account::new(
             101,
-            AccountName::new("Duplicate number").unwrap(),
+            account::Name::new("Duplicate number").unwrap(),
             Category::Asset,
         ));
 
@@ -558,16 +465,16 @@ mod test {
 
         chart.insert(Account::new(
             101,
-            AccountName::new("Test").unwrap(),
+            account::Name::new("Test").unwrap(),
             Category::Expenses,
         ));
         let actual = chart.insert(Account::new(
             101,
-            AccountName::new("Duplicate number").unwrap(),
+            account::Name::new("Duplicate number").unwrap(),
             Category::Asset,
         ));
 
-        let expected = Account::new(101, AccountName::new("Test").unwrap(), Category::Expenses);
+        let expected = Account::new(101, account::Name::new("Test").unwrap(), Category::Expenses);
 
         assert_eq!(actual, Some(expected));
     }
@@ -578,7 +485,7 @@ mod test {
 
         let actual = chart.insert(Account::new(
             101,
-            AccountName::new("Test").unwrap(),
+            account::Name::new("Test").unwrap(),
             Category::Income,
         ));
 
@@ -600,7 +507,7 @@ mod test {
 
         let account = Account::new(
             601,
-            AccountName(String::from("Grocery")),
+            account::Name::new(String::from("Grocery")).unwrap(),
             Category::Expenses,
         );
 
@@ -620,24 +527,24 @@ mod test {
         let mut accounts = vec![
             Account::new(
                 201,
-                AccountName::new("Credit Loan").unwrap(),
+                account::Name::new("Credit Loan").unwrap(),
                 Category::Liability,
             ),
-            Account::new(401, AccountName::new("Salary").unwrap(), Category::Income),
-            Account::new(502, AccountName::new("Phone").unwrap(), Category::Expenses),
+            Account::new(401, account::Name::new("Salary").unwrap(), Category::Income),
+            Account::new(502, account::Name::new("Phone").unwrap(), Category::Expenses),
             Account::new(
                 501,
-                AccountName::new("Internet").unwrap(),
+                account::Name::new("Internet").unwrap(),
                 Category::Expenses,
             ),
             Account::new(
                 202,
-                AccountName::new("Bank Loan").unwrap(),
+                account::Name::new("Bank Loan").unwrap(),
                 Category::Liability,
             ),
             Account::new(
                 101,
-                AccountName::new("Bank Account").unwrap(),
+                account::Name::new("Bank Account").unwrap(),
                 Category::Asset,
             ),
         ];

@@ -3,13 +3,14 @@ use chrono::prelude::*;
 use super::*;
 
 use crate::{
+    account,
     balance::Balance,
-    entry::{Account, AccountName, Category},
+    entry::{Account, Category},
 };
 
 #[test]
 fn ledger_iter() {
-    let account = Account::new(101, AccountName::new("test").unwrap(), Category::Asset);
+    let account = Account::new(101, account::Name::new("test").unwrap(), Category::Asset);
     let mut ledger = Ledger::new(&account);
 
     let transactions = vec![
