@@ -15,7 +15,6 @@ struct EntryDetails {
     description: Option<String>,
 }
 
-
 /// An account with a name and identifier
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Account {
@@ -179,8 +178,8 @@ impl<'a> Journal<'a> {
             })
         } else {
             Err(JournalValidationError {
-                debit: Transaction::debit(balance.0),
-                credit: Transaction::credit(balance.1),
+                debit: Transaction::debit(balance.0).unwrap(),
+                credit: Transaction::credit(balance.1).unwrap(),
             })
         }
     }
@@ -319,7 +318,7 @@ mod test {
         }
     }
 
-    #[test_case(Transaction::debit(50), Transaction::debit(50))]
+    #[test_case(Transaction::debit(50).unwrap(), Transaction::debit(50).unwrap())]
     fn journal_entry_debit<T: 'static>(tx: Transaction<T>, expected: Transaction<Debit>)
     where
         Transaction<T>: TransactionMarker,
@@ -346,7 +345,7 @@ mod test {
         assert_eq!(actual.balance(), &Balance::Debit(expected));
     }
 
-    #[test_case(Transaction::credit(50), Transaction::credit(50))]
+    #[test_case(Transaction::credit(50).unwrap(), Transaction::credit(50).unwrap())]
     fn journal_entry_credit<T: 'static, 'a>(tx: Transaction<T>, expected: Transaction<Credit>)
     where
         Transaction<T>: TransactionMarker,

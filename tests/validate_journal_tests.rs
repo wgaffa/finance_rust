@@ -28,8 +28,8 @@ fn balanced_journal_should_be_valid() {
 
     let mut journal = Journal::new(Utc.ymd(2005, 4, 23));
 
-    journal.push(&accounts[1], Transaction::credit(50));
-    journal.push(&accounts[2], Transaction::debit(50));
+    journal.push(&accounts[1], Transaction::credit(50).unwrap());
+    journal.push(&accounts[2], Transaction::debit(50).unwrap());
 
     let expected = journal.clone();
 
@@ -45,10 +45,10 @@ fn balanced_journal_should_be_valid_given_split_transaction() {
 
     let mut journal = Journal::new(Utc.ymd(2005, 4, 23));
 
-    journal.push(&accounts[1], Transaction::credit(50));
-    journal.push(&accounts[2], Transaction::debit(10));
-    journal.push(&accounts[2], Transaction::debit(30));
-    journal.push(&accounts[2], Transaction::debit(10));
+    journal.push(&accounts[1], Transaction::credit(50).unwrap());
+    journal.push(&accounts[2], Transaction::debit(10).unwrap());
+    journal.push(&accounts[2], Transaction::debit(30).unwrap());
+    journal.push(&accounts[2], Transaction::debit(10).unwrap());
 
     let expected = journal.clone();
 
@@ -64,8 +64,8 @@ fn balanced_journal_should_be_invalid_given_non_zero_balance() {
 
     let mut journal = Journal::new(Utc.ymd(2005, 4, 23));
 
-    journal.push(&accounts[1], Transaction::credit(50));
-    journal.push(&accounts[2], Transaction::debit(52));
+    journal.push(&accounts[1], Transaction::credit(50).unwrap());
+    journal.push(&accounts[2], Transaction::debit(52).unwrap());
 
     let journal = journal.validate();
 

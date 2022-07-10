@@ -30,7 +30,7 @@ impl Category {
     }
 
     /// Create a transaction that increases this type of Category
-    pub fn increase(&self, amount: u32) -> Balance {
+    pub fn increase(&self, amount: u32) -> Option<Balance> {
         match self {
             Category::Asset => Balance::debit(amount),
             Category::Liability => Balance::credit(amount),

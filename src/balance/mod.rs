@@ -1,6 +1,4 @@
-use std::any::Any;
-use std::iter::Sum;
-use std::marker::PhantomData;
+use std::{any::Any, convert::TryInto, iter::Sum, marker::PhantomData, num::NonZeroU32};
 
 /// A balance is either a Debit or Credit transaction
 ///
@@ -8,11 +6,11 @@ use std::marker::PhantomData;
 /// ```
 /// use personal_finance::balance::{Transaction, Balance};
 ///
-/// let debit = Balance::debit(50);
-/// let credit = Balance::credit(20);
+/// let debit = Balance::debit(50).unwrap();
+/// let credit = Balance::credit(20).unwrap();
 ///
-/// assert_eq!(debit, Balance::Debit(Transaction::debit(50)));
-/// assert_eq!(credit, Balance::Credit(Transaction::credit(20)));
+/// assert_eq!(debit.amount(), 50);
+/// assert_eq!(credit.amount(), 20);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Balance {
@@ -22,13 +20,27 @@ pub enum Balance {
 
 impl Balance {
     /// Create a new debit balance
-    pub fn debit(amount: u32) -> Self {
-        Self::Debit(Transaction::debit(amount))
+    pub fn debit<T: TryInto<NonZeroU32>>(amount: T) -> Option<Self> {
+        amount
+            .try_into()
+            .map(|x| Self::Debit(Transaction::debit_unchecked(x.into())))
+            .ok()
     }
 
     /// Create a new credit balance
-    pub fn credit(amount: u32) -> Self {
-        Self::Credit(Transaction::credit(amount))
+    pub fn credit<T: TryInto<NonZeroU32>>(amount: T) -> Option<Self> {
+        amount
+            .try_into()
+            .map(|x| Self::Credit(Transaction::credit_unchecked(x.into())))
+            .ok()
+    }
+
+    /// Get the amount of either the debit or credit
+    pub fn amount(&self) -> u32 {
+        match self {
+            Balance::Debit(x) => x.amount(),
+            Balance::Credit(x) => x.amount(),
+        }
     }
 }
 
@@ -117,10 +129,22 @@ impl Transaction<Debit> {
     /// # Examples
     /// ```
     /// use personal_finance::balance::Transaction;
-    /// let transaction = Transaction::debit(40);
+    /// let transaction = Transaction::debit(40).unwrap();
     /// assert_eq!(transaction.amount(), 40);
     /// ```
-    pub fn debit(amount: u32) -> Self {
+    pub fn debit<T: TryInto<NonZeroU32>>(amount: T) -> Option<Self> {
+        amount
+            .try_into()
+            .map(|amount| Self {
+                amount: amount.into(),
+                phantom: PhantomData,
+            })
+            .ok()
+    }
+
+    pub(crate) fn debit_unchecked(amount: u32) -> Self {
+        assert!(amount != 0);
+
         Self {
             amount,
             phantom: PhantomData,
@@ -133,10 +157,22 @@ impl Transaction<Credit> {
     ///
     /// ```
     /// use personal_finance::balance::Transaction;
-    /// let transaction = Transaction::credit(70);
+    /// let transaction = Transaction::credit(70).unwrap();
     /// assert_eq!(transaction.amount(), 70);
     /// ```
-    pub fn credit(amount: u32) -> Self {
+    pub fn credit<T: TryInto<NonZeroU32>>(amount: T) -> Option<Self> {
+        amount
+            .try_into()
+            .map(|amount| Self {
+                amount: amount.into(),
+                phantom: PhantomData,
+            })
+            .ok()
+    }
+
+    pub(crate) fn credit_unchecked(amount: u32) -> Self {
+        assert!(amount != 0);
+
         Self {
             amount,
             phantom: PhantomData,

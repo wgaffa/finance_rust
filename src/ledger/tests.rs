@@ -14,9 +14,9 @@ fn ledger_iter() {
     let mut ledger = Ledger::new(&account);
 
     let transactions = vec![
-        Balance::debit(150),
-        Balance::debit(270),
-        Balance::credit(50),
+        Balance::debit(150).unwrap(),
+        Balance::debit(270).unwrap(),
+        Balance::credit(50).unwrap(),
     ];
     let entries = vec![
         (Utc.ymd(2021, 2, 10), transactions[0]),
