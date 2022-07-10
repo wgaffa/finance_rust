@@ -1,9 +1,9 @@
 use chrono::prelude::*;
 
 use personal_finance::{
-    account,
+    account::{self, Category},
     balance::Transaction,
-    entry::{Account, Category, Journal},
+    entry::{Account, Journal},
 };
 
 pub fn accounts() -> Vec<Account> {

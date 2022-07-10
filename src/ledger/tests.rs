@@ -3,9 +3,9 @@ use chrono::prelude::*;
 use super::*;
 
 use crate::{
-    account,
+    account::{self, Category},
     balance::Balance,
-    entry::{Account, Category},
+    entry::Account,
 };
 
 #[test]

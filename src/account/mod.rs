@@ -9,7 +9,7 @@ pub use category::Category;
 pub struct Number(u32);
 
 impl Number {
-    /// Create a new [AccountNumber] with a positive integer
+    /// Create a new [Number] with a positive integer
     pub fn new(value: u32) -> Self {
         Self(value)
     }

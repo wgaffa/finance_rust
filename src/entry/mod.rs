@@ -2,10 +2,9 @@ use std::collections::BTreeMap;
 use std::mem;
 
 use chrono::prelude::*;
-use enum_iterator::IntoEnumIterator;
 
 use crate::{
-    account,
+    account::{self, Category},
     balance::{Balance, Transaction},
     error::JournalValidationError,
 };
@@ -16,77 +15,6 @@ struct EntryDetails {
     description: Option<String>,
 }
 
-/// These are the different types of an Account can be associated with.
-#[derive(Debug, Clone, IntoEnumIterator, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Category {
-    Asset,
-    Liability,
-    Equity,
-    Income,
-    Expenses,
-}
-
-impl Category {
-    /// Return an iterator that iterates over all elements that are
-    /// considered to be debit elements.
-    ///
-    /// These are Asset and Expenses.
-    pub fn debits() -> DebitIter {
-        DebitIter::new()
-    }
-
-    /// Return an iterator that iterates over all elements that are
-    /// considered to be credit elements.
-    ///
-    /// These are Liability, Equity and Income.
-    pub fn credits() -> CreditIter {
-        CreditIter::new()
-    }
-}
-
-/// Iterator over all debit categories.
-pub struct DebitIter {
-    debits: Vec<Category>,
-}
-
-/// Iterator over all credit categories.
-pub struct CreditIter {
-    credits: Vec<Category>,
-}
-
-impl DebitIter {
-    fn new() -> Self {
-        Self {
-            debits: vec![Category::Asset, Category::Expenses],
-        }
-    }
-}
-
-impl CreditIter {
-    fn new() -> Self {
-        Self {
-            credits: vec![Category::Liability, Category::Equity, Category::Income],
-        }
-    }
-}
-
-impl IntoIterator for DebitIter {
-    type Item = Category;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.debits.into_iter()
-    }
-}
-
-impl IntoIterator for CreditIter {
-    type Item = Category;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.credits.into_iter()
-    }
-}
 
 /// An account with a name and identifier
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
