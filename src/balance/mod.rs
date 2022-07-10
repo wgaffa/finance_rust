@@ -229,13 +229,19 @@ where
     // it's not a credit type. Otherwise we just move on.
     let debits = debits
         .into_iter()
-        .map(|x| x.as_any().downcast_ref::<Transaction<Debit>>().unwrap().to_owned())
+        .map(|x| {
+            x.as_any()
+                .downcast_ref::<Transaction<Debit>>()
+                .unwrap()
+                .to_owned()
+        })
         // .map(|x| x.as_balance().unwrap().to_owned())
         .collect::<Vec<Transaction<Debit>>>();
     let credits = credits
         .into_iter()
         .map(|x| {
-            x.as_any().downcast_ref::<Transaction<Credit>>()
+            x.as_any()
+                .downcast_ref::<Transaction<Credit>>()
                 .expect("Trying to split trait objects of incompatible types")
                 .to_owned()
         })

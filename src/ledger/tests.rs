@@ -19,18 +19,9 @@ fn ledger_iter() {
         Balance::credit(50),
     ];
     let entries = vec![
-        (
-            Utc.ymd(2021, 2, 10),
-            transactions[0],
-        ),
-        (
-            Utc.ymd(2021, 2, 15),
-            transactions[1],
-        ),
-        (
-            Utc.ymd(2021, 3, 5),
-            transactions[2],
-        ),
+        (Utc.ymd(2021, 2, 10), transactions[0]),
+        (Utc.ymd(2021, 2, 15), transactions[1]),
+        (Utc.ymd(2021, 3, 5), transactions[2]),
     ];
 
     for entry in &entries {

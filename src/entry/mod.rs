@@ -97,7 +97,11 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn new<T: Into<account::Number>>(number: T, name: account::Name, element: Category) -> Self {
+    pub fn new<T: Into<account::Number>>(
+        number: T,
+        name: account::Name,
+        element: Category,
+    ) -> Self {
         Self {
             number: number.into(),
             name,
@@ -531,7 +535,11 @@ mod test {
                 Category::Liability,
             ),
             Account::new(401, account::Name::new("Salary").unwrap(), Category::Income),
-            Account::new(502, account::Name::new("Phone").unwrap(), Category::Expenses),
+            Account::new(
+                502,
+                account::Name::new("Phone").unwrap(),
+                Category::Expenses,
+            ),
             Account::new(
                 501,
                 account::Name::new("Internet").unwrap(),
