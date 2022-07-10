@@ -118,8 +118,13 @@ mod tests {
 
     impl Arbitrary for Category {
         fn arbitrary(g: &mut Gen) -> Self {
-            *g.choose(&Category::credits().into_iter().chain(Category::debits()).collect::<Vec<_>>())
-                .unwrap()
+            *g.choose(
+                &Category::credits()
+                    .into_iter()
+                    .chain(Category::debits())
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap()
         }
     }
 
