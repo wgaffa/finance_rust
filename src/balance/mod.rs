@@ -238,12 +238,9 @@ impl<T> std::ops::AddAssign for Transaction<T> {
     }
 }
 
-/// Split a vector of Any trait objects into its Debit and Credit
+/// Split an iterator of Balance items into a tuple of Debits and Credits
 ///
 /// This returns a tuple where the first one is the debits and second is credits
-///
-/// # Panics
-/// If the vector contains other types than `Transaction<Debit>` or `Transaction<Credit>`
 pub fn split<I>(collection: I) -> (Vec<Transaction<Debit>>, Vec<Transaction<Credit>>)
 where
     I: IntoIterator<Item = Balance>,
