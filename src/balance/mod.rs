@@ -248,8 +248,14 @@ where
     collection
         .into_iter()
         .fold((Vec::new(), Vec::new()), |mut tup, x| match x {
-            Balance::Credit(credit) => { tup.1.push(credit); (tup.0, tup.1) },
-            Balance::Debit(debit) => { tup.0.push(debit); (tup.0, tup.1) },
+            Balance::Credit(credit) => {
+                tup.1.push(credit);
+                (tup.0, tup.1)
+            }
+            Balance::Debit(debit) => {
+                tup.0.push(debit);
+                (tup.0, tup.1)
+            }
         })
 }
 

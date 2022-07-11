@@ -50,12 +50,11 @@ impl<'a> Ledger<'a> {
 
 pub struct Iter<'a> {
     slice: &'a [LedgerEntry],
-    index: usize,
 }
 
 impl<'a> Iter<'a> {
     fn new(slice: &'a [LedgerEntry]) -> Self {
-        Self { slice, index: 0 }
+        Self { slice }
     }
 }
 
@@ -63,10 +62,9 @@ impl<'a> Iterator for Iter<'a> {
     type Item = (&'a Date<Utc>, &'a Balance);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let index = self.index;
-        self.index += 1;
-
-        self.slice.get(index).map(|x| (&x.date, &x.transaction))
+        let (item, rest) = self.slice.split_first()?;
+        self.slice = rest;
+        Some((&item.date, &item.transaction))
     }
 }
 
