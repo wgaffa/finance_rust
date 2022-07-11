@@ -248,42 +248,12 @@ pub fn split<I>(collection: I) -> (Vec<Transaction<Debit>>, Vec<Transaction<Cred
 where
     I: IntoIterator<Item = Balance>,
 {
-    #[allow(clippy::type_complexity)]
-    let (debits, credits): (
-        Vec<Box<dyn TransactionMarker>>,
-        Vec<Box<dyn TransactionMarker>>,
-    ) = collection
+    collection
         .into_iter()
-        .map(|x| match x {
-            Balance::Credit(credit) => Box::new(credit) as Box<dyn TransactionMarker>,
-            Balance::Debit(debit) => Box::new(debit),
+        .fold((Vec::new(), Vec::new()), |mut tup, x| match x {
+            Balance::Credit(credit) => { tup.1.push(credit); (tup.0, tup.1) },
+            Balance::Debit(debit) => { tup.0.push(debit); (tup.0, tup.1) },
         })
-        .partition(|x| x.as_any().is::<Transaction<Debit>>());
-
-    // Since we split the transactions on the Debit types we can just unwrap the debits downcast.
-    // But credits may contain malicious types and we therefore inspect the elements and panics if
-    // it's not a credit type. Otherwise we just move on.
-    let debits = debits
-        .into_iter()
-        .map(|x| {
-            x.as_any()
-                .downcast_ref::<Transaction<Debit>>()
-                .unwrap()
-                .to_owned()
-        })
-        // .map(|x| x.as_balance().unwrap().to_owned())
-        .collect::<Vec<Transaction<Debit>>>();
-    let credits = credits
-        .into_iter()
-        .map(|x| {
-            x.as_any()
-                .downcast_ref::<Transaction<Credit>>()
-                .expect("Trying to split trait objects of incompatible types")
-                .to_owned()
-        })
-        .collect::<Vec<Transaction<Credit>>>();
-
-    (debits, credits)
 }
 
 #[cfg(test)]
