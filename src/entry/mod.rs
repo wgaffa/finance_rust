@@ -5,7 +5,7 @@ use chrono::prelude::*;
 
 use crate::{
     account::{self, Category},
-    balance::{Balance, TransactionMarker},
+    balance::{Balance, Transaction},
     error::JournalValidationError,
 };
 
@@ -178,8 +178,8 @@ impl<'a> Journal<'a> {
             })
         } else {
             Err(JournalValidationError {
-                debit: TransactionMarker::debit(balance.0).unwrap(),
-                credit: TransactionMarker::credit(balance.1).unwrap(),
+                debit: Transaction::debit(balance.0).unwrap(),
+                credit: Transaction::credit(balance.1).unwrap(),
             })
         }
     }
@@ -299,10 +299,10 @@ mod test {
     };
 
     pub fn is_debit(x: &dyn Any) -> bool {
-        x.is::<TransactionMarker<Debit>>()
+        x.is::<Transaction<Debit>>()
     }
 
-    pub fn to_debit(x: &dyn Any) -> &TransactionMarker<Debit> {
+    pub fn to_debit(x: &dyn Any) -> &Transaction<Debit> {
         if let Some(tx) = x.downcast_ref() {
             tx
         } else {
@@ -310,7 +310,7 @@ mod test {
         }
     }
 
-    pub fn to_credit(x: &dyn Any) -> &TransactionMarker<Credit> {
+    pub fn to_credit(x: &dyn Any) -> &Transaction<Credit> {
         if let Some(tx) = x.downcast_ref() {
             tx
         } else {
@@ -319,9 +319,9 @@ mod test {
     }
 
     #[test_case(Transaction::debit(50).unwrap(), Transaction::debit(50).unwrap())]
-    fn journal_entry_debit<T: 'static>(tx: TransactionMarker<T>, expected: TransactionMarker<Debit>)
+    fn journal_entry_debit<T: 'static>(tx: Transaction<T>, expected: Transaction<Debit>)
     where
-        TransactionMarker<T>: TransactionMarker,
+        Transaction<T>: TransactionMarker,
     {
         let account = Account {
             name: account::Name::new(String::from("Test")).unwrap(),
@@ -346,9 +346,9 @@ mod test {
     }
 
     #[test_case(Transaction::credit(50).unwrap(), Transaction::credit(50).unwrap())]
-    fn journal_entry_credit<T: 'static, 'a>(tx: TransactionMarker<T>, expected: TransactionMarker<Credit>)
+    fn journal_entry_credit<T: 'static, 'a>(tx: Transaction<T>, expected: Transaction<Credit>)
     where
-        TransactionMarker<T>: TransactionMarker,
+        Transaction<T>: TransactionMarker,
     {
         let account = Account {
             name: account::Name::new(String::from("Test")).unwrap(),

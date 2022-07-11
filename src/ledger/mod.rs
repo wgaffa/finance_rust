@@ -3,13 +3,13 @@ use chrono::prelude::*;
 use crate::balance::Balance;
 use crate::entry::{Account, ValidatedJournal};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LedgerEntry {
     date: Date<Utc>,
     transaction: Balance,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ledger<'a> {
     account: &'a Account,
     entries: Vec<LedgerEntry>,
