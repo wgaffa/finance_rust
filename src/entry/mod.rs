@@ -36,20 +36,20 @@ impl Account {
         }
     }
 
-    pub fn number(&self) -> &account::Number {
-        &self.number
+    pub fn number(&self) -> account::Number {
+        self.number
     }
 
     pub fn name(&self) -> &account::Name {
         &self.name
     }
 
-    pub fn category(&self) -> &Category {
-        &self.category
+    pub fn category(&self) -> Category {
+        self.category
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chart {
     chart: BTreeMap<u32, Account>,
 }

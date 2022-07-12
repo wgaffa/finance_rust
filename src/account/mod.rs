@@ -5,7 +5,7 @@ mod category;
 pub use category::Category;
 
 /// An account number to identify an account.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Number(u32);
 
 impl Number {
@@ -55,7 +55,7 @@ pub struct Name(String);
 impl Name {
     /// Create a new AccountName
     ///
-    /// This trims and returns Some(AccountName) if it is not an empty string,
+    /// This trims and returns Some([Name]) if it is not an empty string,
     /// otherwise it return None.
     pub fn new<T: AsRef<str>>(name: T) -> Option<Self> {
         let name = name.as_ref().trim().to_owned();
@@ -66,12 +66,12 @@ impl Name {
         }
     }
 
-    /// Move the inner string out of AccountName thus consuming it
+    /// Move the inner string out of [Name] thus consuming it
     pub fn into_inner(self) -> String {
         self.0
     }
 
-    pub fn name(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 }
