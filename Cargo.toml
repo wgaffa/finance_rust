@@ -10,3 +10,6 @@ cqrs = { version = "0.1.0", path = "cqrs" }
 personal_finance = { version = "0.1.0", path = "finance_lib" }
 
 [workspace]
+
+[dev-dependencies]
+chrono = "0.4.19"
