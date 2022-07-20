@@ -48,11 +48,7 @@ impl FromStr for Stream {
 impl From<(Identifier, Identifier, Identifier)> for Stream {
     fn from(value: (Identifier, Identifier, Identifier)) -> Self {
         let (schema, category, id) = value;
-        Self {
-            schema,
-            category,
-            id,
-        }
+        Self::new(schema, category, id)
     }
 }
 
