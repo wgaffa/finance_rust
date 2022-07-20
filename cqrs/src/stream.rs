@@ -34,11 +34,8 @@ impl FromStr for Stream {
             .collect::<Result<Vec<_>, Report<identifier::ParseError>>>() // This only gets the first Err variant
             .change_context(ParseError::InvalidStream)?;
 
-        let split: [Identifier; 3] = split
-            .try_into()
+        let [schema, category, id] = TryInto::<[Identifier; 3]>::try_into(split)
             .map_err(|x| error_stack::report!(ParseError::InvalidLength(x)))?;
-
-        let [schema, category, id]: [Identifier; 3] = split;
 
         Ok(Stream {
             schema,
@@ -67,7 +64,13 @@ pub enum ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self {
+            Self::InvalidStream => f.write_str("Stream id is invalid"),
+            Self::InvalidLength(input) => write!(
+                f,
+                "Stream must contain atleast 3 identifiers, got {input:?}"
+            ),
+        }
     }
 }
 
@@ -77,6 +80,20 @@ impl Error for ParseError {}
 mod tests {
     use super::*;
 
-    use quickcheck::Arbitrary;
     use quickcheck_macros::quickcheck;
+
+    #[quickcheck]
+    fn parse_and_new_gives_equal_types(input: (String, String, String)) -> bool {
+        let input = [input.0, input.1, input.2];
+        use crate::identifier::Identifier;
+        let stream_new = input
+            .iter()
+            .map(Identifier::new)
+            .collect::<Option<Vec<_>>>()
+            .map(|ids| Stream::new(ids[0].clone(), ids[1].clone(), ids[2].clone()));
+
+        let stream_parse = input.join(".").parse::<Stream>().ok();
+
+        stream_new == stream_parse
+    }
 }
