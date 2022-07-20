@@ -1,3 +1,5 @@
+use std::{fmt, str::FromStr};
+
 use enum_iterator::IntoEnumIterator;
 
 use crate::balance::Balance;
@@ -40,6 +42,44 @@ impl Category {
         }
     }
 }
+
+impl fmt::Display for Category {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Asset => f.write_str("Asset"),
+            Self::Liability => f.write_str("Liability"),
+            Self::Equity => f.write_str("Equity"),
+            Self::Income => f.write_str("Income"),
+            Self::Expenses => f.write_str("Expenses"),
+        }
+    }
+}
+
+impl FromStr for Category {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim() {
+            "Asset" => Ok(Self::Asset),
+            "Liability" => Ok(Self::Liability),
+            "Equity" => Ok(Self::Equity),
+            "Income" => Ok(Self::Income),
+            "Expenses" => Ok(Self::Expenses),
+            _ => Err(ParseError),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ParseError;
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Unable to parse category")
+    }
+}
+
+impl std::error::Error for ParseError {}
 
 /// Iterator over all debit categories.
 pub struct DebitIter {
@@ -146,5 +186,10 @@ mod tests {
         let inc = category.0.increase(amount);
 
         inc == Balance::credit(amount)
+    }
+
+    #[quickcheck]
+    fn category_to_string_then_parse_should_be_original(category: Category) -> bool{
+        category == category.to_string().parse().unwrap()
     }
 }
