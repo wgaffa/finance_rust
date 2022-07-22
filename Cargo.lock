@@ -41,6 +41,7 @@ name = "cqrs"
 version = "0.1.0"
 dependencies = [
  "error-stack",
+ "personal_finance",
  "quickcheck",
  "quickcheck_macros",
  "test-case 2.1.0",

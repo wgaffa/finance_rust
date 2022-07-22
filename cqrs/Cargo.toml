@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 error-stack = "0.1.1"
+personal_finance = { version = "0.1.0", path = "../finance_lib" }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
