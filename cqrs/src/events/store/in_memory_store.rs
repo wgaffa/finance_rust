@@ -1,4 +1,4 @@
-use super::EventStorage;
+use super::{EventStorage, Query};
 
 pub struct InMemoryStore<T> {
     data: Vec<T>,
@@ -19,6 +19,14 @@ impl<T> InMemoryStore<T> {
 impl<T> EventStorage<T> for InMemoryStore<T> {
     fn append(&mut self, event: T) {
         self.data.push(event)
+    }
+}
+
+impl<T> Query for InMemoryStore<T> {
+    type Item = T;
+
+    fn all(&self) -> &[T] {
+        &self.data
     }
 }
 
