@@ -12,7 +12,7 @@ use std::{any::Any, convert::TryInto, iter::Sum, marker::PhantomData, num::NonZe
 /// assert_eq!(debit.amount(), 50);
 /// assert_eq!(credit.amount(), 20);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Balance {
     Debit(Transaction<Debit>),
     Credit(Transaction<Credit>),
@@ -68,10 +68,10 @@ impl From<Box<Transaction<Credit>>> for Balance {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Debit;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Credit;
 
 pub(crate) trait TransactionMarker: std::fmt::Debug {
@@ -101,7 +101,7 @@ impl TransactionMarker for Transaction<Debit> {
 }
 
 /// Data for a single transaction holding the entry type and amount
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Transaction<T> {
     amount: u32,
     phantom: PhantomData<T>,

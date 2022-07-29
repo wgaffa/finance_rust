@@ -1,4 +1,4 @@
-use personal_finance::account::Category;
+use personal_finance::{account::Category, balance::Balance};
 
 pub mod store;
 
@@ -10,4 +10,8 @@ pub enum Event {
         category: Category,
     },
     AccountClosed(u32),
+    Transaction {
+        account: u32,
+        amount: Balance,
+    },
 }
