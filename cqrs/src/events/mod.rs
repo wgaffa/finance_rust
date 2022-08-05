@@ -1,6 +1,7 @@
 use personal_finance::{account::Category, balance::Balance};
 
 pub mod store;
+pub mod projections;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Event {
