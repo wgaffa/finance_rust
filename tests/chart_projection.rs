@@ -1,5 +1,5 @@
 use cqrs::events::{
-    projections::ProjectionMut,
+    projections::Projection,
     store::{EventStorage, InMemoryStore},
     Event,
 };
@@ -24,10 +24,12 @@ fn chart_projection() {
         category: Category::Expenses,
     });
 
-    let mut projection = ProjectionMut::new(Chart::new(), |state, event| {
+    let projection = Projection::new(Chart::new(), |mut state, event| {
         if let Event::AccountOpened { id, name, category } = event {
             state.insert(Account::new(*id, Name::new(name).unwrap(), *category));
         }
+
+        state
     });
 
     let chart = projection.project(repository.iter());
