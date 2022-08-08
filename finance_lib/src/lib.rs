@@ -1,4 +1,4 @@
-#![feature(box_into_inner)]
+#![cfg_attr(feature = "nightly", feature(box_into_inner))]
 
 pub mod account;
 pub mod balance;

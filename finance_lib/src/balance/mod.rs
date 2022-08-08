@@ -58,13 +58,21 @@ impl From<Transaction<Credit>> for Balance {
 
 impl From<Box<Transaction<Debit>>> for Balance {
     fn from(value: Box<Transaction<Debit>>) -> Self {
-        Self::Debit(Box::into_inner(value))
+        #[cfg(feature = "nightly")]
+        return Self::Debit(Box::into_inner(value));
+
+        #[cfg(not(feature = "nightly"))]
+        Self::Debit(*value)
     }
 }
 
 impl From<Box<Transaction<Credit>>> for Balance {
     fn from(value: Box<Transaction<Credit>>) -> Self {
-        Self::Credit(Box::into_inner(value))
+        #[cfg(feature = "nightly")]
+        return Self::Credit(Box::into_inner(value));
+
+        #[cfg(not(feature = "nightly"))]
+        Self::Credit(*value)
     }
 }
 
