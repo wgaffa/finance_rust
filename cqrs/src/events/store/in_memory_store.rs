@@ -20,6 +20,11 @@ impl<T> EventStorage<T> for InMemoryStore<T> {
     fn append(&mut self, event: T) {
         self.data.push(event)
     }
+
+    fn evolve(&mut self, producer: super::EventProducer<T>) {
+        let new_events = producer(&self.data);
+        self.data.extend(new_events);
+    }
 }
 
 impl<T> Query for InMemoryStore<T> {
