@@ -17,9 +17,9 @@ fn main() {
         name: String::from("General expenses"),
         category: Category::Expenses,
     });
-    store.append(Event::Transaction { account: 101, amount: Balance::debit(50).unwrap() });
-    store.append(Event::Transaction { account: 101, amount: Balance::debit(15).unwrap() });
-    store.append(Event::Transaction { account: 101, amount: Balance::credit(25).unwrap() });
+    store.append(Event::Transaction { account: 101, amount: Balance::debit(50).unwrap(), journal: 1 });
+    store.append(Event::Transaction { account: 101, amount: Balance::debit(15).unwrap(), journal: 1 });
+    store.append(Event::Transaction { account: 101, amount: Balance::credit(25).unwrap(), journal: 1 });
 
     for event in store.iter() {
         println!("{event:#?}");

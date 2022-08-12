@@ -3,16 +3,24 @@ use personal_finance::{account::Category, balance::Balance};
 pub mod store;
 pub mod projections;
 
+pub type JournalId = u32;
+pub type AccountId = u32;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Event {
     AccountOpened {
-        id: u32,
+        id: AccountId,
         name: String,
         category: Category,
     },
     AccountClosed(u32),
     Transaction {
-        account: u32,
+        account: AccountId,
         amount: Balance,
+        journal: JournalId,
     },
+    Journal {
+        id: u32,
+        description: JournalId,
+    }
 }
