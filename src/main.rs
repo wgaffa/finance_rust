@@ -1,8 +1,9 @@
 use cqrs::events::{
     store::{EventStorage, InMemoryStore},
+    Balance,
     Event,
 };
-use personal_finance::{self, account::Category, balance::Balance};
+use personal_finance::{self, account::Category};
 
 fn main() {
     let mut store = InMemoryStore::new();
@@ -17,9 +18,9 @@ fn main() {
         name: String::from("General expenses"),
         category: Category::Expenses,
     });
-    store.append(Event::Transaction { account: 101, amount: Balance::debit(50).unwrap(), journal: 1 });
-    store.append(Event::Transaction { account: 101, amount: Balance::debit(15).unwrap(), journal: 1 });
-    store.append(Event::Transaction { account: 101, amount: Balance::credit(25).unwrap(), journal: 1 });
+    store.append(Event::Transaction { account: 101, amount: Balance::Debit(50), journal: 1 });
+    store.append(Event::Transaction { account: 101, amount: Balance::Debit(15), journal: 1 });
+    store.append(Event::Transaction { account: 101, amount: Balance::Credit(25), journal: 1 });
 
     for event in store.iter() {
         println!("{event:#?}");
