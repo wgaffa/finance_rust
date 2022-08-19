@@ -6,7 +6,7 @@ pub type EventProducer<T> = Box<dyn Fn(&[T]) -> Vec<T>>;
 
 pub trait EventStorage<T> {
     fn append(&mut self, event: T);
-    fn evolve(&mut self, producer: EventProducer<T>);
+    fn evolve<F: Fn(&[T]) -> Vec<T>>(&mut self, producer: F);
 }
 
 pub trait Query {

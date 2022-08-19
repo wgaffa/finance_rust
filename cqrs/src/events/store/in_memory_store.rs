@@ -21,7 +21,7 @@ impl<T> EventStorage<T> for InMemoryStore<T> {
         self.data.push(event)
     }
 
-    fn evolve(&mut self, producer: super::EventProducer<T>) {
+    fn evolve<F: Fn(&[T]) -> Vec<T>>(&mut self, producer: F) {
         let new_events = producer(&self.data);
         self.data.extend(new_events);
     }
