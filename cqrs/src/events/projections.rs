@@ -14,13 +14,17 @@ where
     F: Fn(S, &E) -> S,
 {
     pub fn new(init: S, update: F) -> Self {
-        Self { init, update, _phantom: PhantomData }
+        Self {
+            init,
+            update,
+            _phantom: PhantomData,
+        }
     }
 
     pub fn project<'a, I>(&'a self, iter: I) -> S
     where
         I: Iterator<Item = &'a E>,
-        S: Clone
+        S: Clone,
     {
         iter.fold(self.init.clone(), &self.update)
     }

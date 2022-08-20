@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn category_to_string_then_parse_should_be_original(category: Category) -> bool{
+    fn category_to_string_then_parse_should_be_original(category: Category) -> bool {
         category == category.to_string().parse().unwrap()
     }
 }

@@ -48,9 +48,12 @@ fn creating_account() {
 
     repo.evolve(|e| {
         behaviour::open_account(101, String::from("Credit Account"), Category::Asset, e)
-    }).unwrap();
-    repo.evolve(|e| behaviour::open_account(201, String::from("Groceries"), Category::Expenses, e)).unwrap();
-    repo.evolve(|e| behaviour::open_account(301, String::from("Salary"), Category::Income, e)).unwrap();
+    })
+    .unwrap();
+    repo.evolve(|e| behaviour::open_account(201, String::from("Groceries"), Category::Expenses, e))
+        .unwrap();
+    repo.evolve(|e| behaviour::open_account(301, String::from("Salary"), Category::Income, e))
+        .unwrap();
 
     let actual = repo.iter().cloned().collect::<Vec<_>>();
 
@@ -81,7 +84,8 @@ fn creating_duplicate_should_give_error() {
 
     repo.evolve(|e| {
         behaviour::open_account(101, String::from("Credit Account"), Category::Asset, e)
-    }).unwrap();
+    })
+    .unwrap();
     let res = repo
         .evolve(|e| behaviour::open_account(101, String::from("Bank Account"), Category::Asset, e));
 

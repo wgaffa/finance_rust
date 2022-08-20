@@ -3,7 +3,10 @@ use cqrs::events::{
     store::{EventStorage, InMemoryStore},
     Event,
 };
-use personal_finance::{account::{Category, Name}, entry::{Chart, Account}};
+use personal_finance::{
+    account::{Category, Name},
+    entry::{Account, Chart},
+};
 
 #[test]
 fn chart_projection() {

@@ -7,7 +7,7 @@ pub struct Identifier(String);
 impl Identifier {
     pub fn new<T: AsRef<str>>(identifier: T) -> Option<Self> {
         let identifier = identifier.as_ref();
-        if identifier.len() == 0 {
+        if identifier.is_empty() {
             return None;
         }
 

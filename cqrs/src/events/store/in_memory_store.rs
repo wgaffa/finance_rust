@@ -8,9 +8,7 @@ pub struct InMemoryStore<T> {
 
 impl<T> InMemoryStore<T> {
     pub fn new() -> InMemoryStore<T> {
-        Self {
-            data: Vec::new(),
-        }
+        Self { data: Vec::new() }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &T> {
@@ -62,5 +60,11 @@ impl<T> IntoIterator for InMemoryStore<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
+    }
+}
+
+impl<T> Default for InMemoryStore<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
