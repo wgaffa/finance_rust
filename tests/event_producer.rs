@@ -1,24 +1,36 @@
 use cqrs::{
     behaviour,
     events::{
-        store::{EventProducer, EventStorage, InMemoryStore},
+        store::{EventStorage, InMemoryStore},
         Event,
     },
 };
 use personal_finance::account::Category;
 
+#[derive(Debug)]
+struct GenericError;
+
+impl std::fmt::Display for GenericError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Generic Error")
+    }
+}
+
+impl std::error::Error for GenericError {}
+
 #[test]
 fn create_new_account_in_empty_chart() {
-    let add_event: EventProducer<Event> = Box::new(|_events| {
-        vec![Event::AccountOpened {
-            id: 101,
-            name: String::from("Bank Account"),
-            category: Category::Asset,
-        }]
-    });
+    let add_event: Box<dyn Fn(&[Event]) -> error_stack::Result<Vec<Event>, GenericError>> =
+        Box::new(|_events| {
+            Ok(vec![Event::AccountOpened {
+                id: 101,
+                name: String::from("Bank Account"),
+                category: Category::Asset,
+            }])
+        });
     let mut repo = InMemoryStore::new();
 
-    repo.evolve(add_event);
+    repo.evolve(add_event).unwrap();
     let current_events = repo.iter().cloned().collect::<Vec<_>>();
 
     let expected = vec![Event::AccountOpened {
@@ -36,9 +48,9 @@ fn creating_account() {
 
     repo.evolve(|e| {
         behaviour::open_account(101, String::from("Credit Account"), Category::Asset, e)
-    });
-    repo.evolve(|e| behaviour::open_account(201, String::from("Groceries"), Category::Expenses, e));
-    repo.evolve(|e| behaviour::open_account(301, String::from("Salary"), Category::Income, e));
+    }).unwrap();
+    repo.evolve(|e| behaviour::open_account(201, String::from("Groceries"), Category::Expenses, e)).unwrap();
+    repo.evolve(|e| behaviour::open_account(301, String::from("Salary"), Category::Income, e)).unwrap();
 
     let actual = repo.iter().cloned().collect::<Vec<_>>();
 
@@ -61,4 +73,25 @@ fn creating_account() {
     ];
 
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn creating_duplicate_should_give_error() {
+    let mut repo = InMemoryStore::new();
+
+    repo.evolve(|e| {
+        behaviour::open_account(101, String::from("Credit Account"), Category::Asset, e)
+    }).unwrap();
+    let res = repo
+        .evolve(|e| behaviour::open_account(101, String::from("Bank Account"), Category::Asset, e));
+
+    let actual = repo.into_iter().collect::<Vec<_>>();
+    let expected = vec![Event::AccountOpened {
+        id: 101,
+        name: String::from("Credit Account"),
+        category: Category::Asset,
+    }];
+
+    assert_eq!(actual, expected);
+    assert!(res.is_err());
 }
