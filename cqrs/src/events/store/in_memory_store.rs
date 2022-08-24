@@ -1,5 +1,3 @@
-use error_stack::ResultExt;
-
 use super::{EventStorage, Query};
 
 pub struct InMemoryStore<T> {
@@ -34,12 +32,11 @@ impl<T> EventStorage<T> for InMemoryStore<T> {
         self.data.push(event)
     }
 
-    fn evolve<F, C>(&mut self, producer: F) -> Result<(), Self::Error>
+    fn evolve<F>(&mut self, producer: F) -> Result<(), Self::Error>
     where
-        C: error_stack::Context,
-        F: Fn(&[T]) -> error_stack::Result<Vec<T>, C>,
+        F: Fn(&[T]) -> Vec<T>,
     {
-        let new_events = producer(&self.data).change_context(EvolveError)?;
+        let new_events = producer(&self.data);
         self.data.extend(new_events);
 
         Ok(())

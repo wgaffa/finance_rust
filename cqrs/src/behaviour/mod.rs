@@ -16,20 +16,11 @@ impl std::fmt::Display for AccountError {
 
 impl std::error::Error for AccountError {}
 
-type BehaviourError<E> = error_stack::Result<Vec<Event>, E>;
-
 pub fn open_account(
     id: u32,
     name: String,
     category: Category,
-    events: &[Event],
-) -> BehaviourError<AccountError> {
-    if events
-        .iter()
-        .any(|e| matches!(e, Event::AccountOpened { id: e_id, .. } if *e_id == id ))
-    {
-        error_stack::bail!(AccountError::AccountAlreadyOpened(id))
-    }
-
-    Ok(vec![Event::AccountOpened { id, name, category }])
+    _events: &[Event],
+) -> Vec<Event> {
+    vec![Event::AccountOpened { id, name, category: category }]
 }

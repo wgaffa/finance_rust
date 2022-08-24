@@ -6,10 +6,9 @@ pub trait EventStorage<T> {
     type Error;
 
     fn append(&mut self, event: T);
-    fn evolve<F, C>(&mut self, producer: F) -> Result<(), Self::Error>
+    fn evolve<F>(&mut self, producer: F) -> Result<(), Self::Error>
     where
-        C: error_stack::Context,
-        F: Fn(&[T]) -> error_stack::Result<Vec<T>, C>;
+        F: Fn(&[T]) -> Vec<T>;
 }
 
 pub trait Query {

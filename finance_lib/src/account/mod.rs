@@ -100,6 +100,12 @@ impl PartialOrd<&str> for Name {
     }
 }
 
+impl From<Name> for String {
+    fn from(other: Name) -> Self {
+        other.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
