@@ -9,14 +9,13 @@ use personal_finance::account::{Category, Name};
 
 #[test]
 fn create_new_account_in_empty_chart() {
-    let add_event: Box<dyn Fn(&[Event]) -> Vec<Event>> =
-        Box::new(|_events| {
-            vec![Event::AccountOpened {
-                id: 101,
-                name: String::from("Bank Account"),
-                category: Category::Asset,
-            }]
-        });
+    let add_event: Box<dyn Fn(&[Event]) -> Vec<Event>> = Box::new(|_events| {
+        vec![Event::AccountOpened {
+            id: 101,
+            name: String::from("Bank Account"),
+            category: Category::Asset,
+        }]
+    });
     let mut repo = InMemoryStore::new();
 
     repo.evolve(add_event).unwrap();
@@ -72,10 +71,20 @@ fn creating_duplicate_should_give_error() {
     let mut repo = InMemoryStore::new();
 
     let mut write_model = cqrs::Chart::default();
-    let new_events = write_model.open(101.into(), Name::new("Credit Account").unwrap(), Category::Asset).unwrap();
+    let new_events = write_model
+        .open(
+            101.into(),
+            Name::new("Credit Account").unwrap(),
+            Category::Asset,
+        )
+        .unwrap();
     repo.extend(new_events.iter().cloned());
 
-    let res = write_model.open(101.into(), Name::new("Bank Account").unwrap(), Category::Asset);
+    let res = write_model.open(
+        101.into(),
+        Name::new("Bank Account").unwrap(),
+        Category::Asset,
+    );
 
     let actual = repo.into_iter().collect::<Vec<_>>();
     let expected = vec![Event::AccountOpened {

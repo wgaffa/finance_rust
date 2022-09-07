@@ -28,5 +28,5 @@ pub enum Event {
     Journal {
         id: u32,
         description: JournalId,
-    }
+    },
 }
