@@ -5,7 +5,7 @@ use cqrs::{
         Event,
     },
 };
-use personal_finance::account::Category;
+use personal_finance::account::{Category, Name};
 
 #[test]
 fn create_new_account_in_empty_chart() {
@@ -67,17 +67,15 @@ fn creating_account() {
     assert_eq!(actual, expected);
 }
 
-#[ignore]
 #[test]
 fn creating_duplicate_should_give_error() {
     let mut repo = InMemoryStore::new();
 
-    repo.evolve(|e| {
-        behaviour::open_account(101, String::from("Credit Account"), Category::Asset, e)
-    })
-    .unwrap();
-    let res = repo
-        .evolve(|e| behaviour::open_account(101, String::from("Bank Account"), Category::Asset, e));
+    let mut write_model = cqrs::Chart::default();
+    let new_events = write_model.open(101.into(), Name::new("Credit Account").unwrap(), Category::Asset).unwrap();
+    repo.extend(new_events.iter().cloned());
+
+    let res = write_model.open(101.into(), Name::new("Bank Account").unwrap(), Category::Asset);
 
     let actual = repo.into_iter().collect::<Vec<_>>();
     let expected = vec![Event::AccountOpened {

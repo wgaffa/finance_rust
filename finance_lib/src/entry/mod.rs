@@ -77,6 +77,11 @@ impl Chart {
         }
     }
 
+    /// Remove an account from the chart
+    pub fn remove<T: Into<account::Number>>(&mut self, id: T) {
+        self.chart.remove(&id.into().number());
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &Account> {
         self.chart.values()
     }

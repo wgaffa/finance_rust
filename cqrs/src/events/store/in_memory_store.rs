@@ -65,3 +65,9 @@ impl<T> Default for InMemoryStore<T> {
         Self::new()
     }
 }
+
+impl<T> Extend<T> for InMemoryStore<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        self.data.extend(iter);
+    }
+}
