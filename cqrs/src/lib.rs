@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
-use behaviour::AccountError;
+use error::AccountError;
 use events::Event;
 use personal_finance::account::{Category, Name, Number};
 
 pub mod behaviour;
+pub mod error;
 pub mod events;
 pub mod identifier;
 pub mod stream;
@@ -31,7 +32,7 @@ impl Chart {
         number: Number,
         name: Name,
         category: Category,
-    ) -> Result<&[Event], behaviour::AccountError> {
+    ) -> Result<&[Event], AccountError> {
         let account_already_exist = self.data.contains(&number.number());
         if account_already_exist {
             Err(AccountError::AccountAlreadyOpened(number.number()))
