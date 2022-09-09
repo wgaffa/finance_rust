@@ -1,9 +1,8 @@
+use std::collections::HashSet;
+
 use behaviour::AccountError;
 use events::Event;
-use personal_finance::{
-    account::{Category, Name, Number},
-    entry::Account,
-};
+use personal_finance::account::{Category, Name, Number};
 
 pub mod behaviour;
 pub mod events;
@@ -11,7 +10,7 @@ pub mod identifier;
 pub mod stream;
 
 pub struct Chart {
-    data: personal_finance::entry::Chart,
+    data: HashSet<events::AccountId>,
     history: Vec<Event>,
 }
 
@@ -33,7 +32,7 @@ impl Chart {
         name: Name,
         category: Category,
     ) -> Result<&[Event], behaviour::AccountError> {
-        let account_already_exist = self.data.iter().any(|x| x.number() == number);
+        let account_already_exist = self.data.contains(&number.number());
         if account_already_exist {
             Err(AccountError::AccountAlreadyOpened(number.number()))
         } else {
@@ -57,12 +56,13 @@ impl Chart {
     fn apply(&mut self, events: &[Event]) {
         for event in events {
             match event {
-                Event::AccountOpened { id, name, category } => {
-                    self.data
-                        .insert(Account::new(*id, Name::new(name).unwrap(), *category));
+                Event::AccountOpened { id, .. } => {
+                    self.data.insert(*id);
                 }
-                Event::AccountClosed(id) => self.data.remove(*id),
-                _ => todo!(),
+                Event::AccountClosed(id) => {
+                    self.data.remove(id);
+                }
+                _ => {}
             }
         }
     }
@@ -71,7 +71,7 @@ impl Chart {
 impl Default for Chart {
     fn default() -> Self {
         Self {
-            data: personal_finance::entry::Chart::new(),
+            data: Default::default(),
             history: Vec::new(),
         }
     }
