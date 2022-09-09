@@ -33,25 +33,26 @@ impl Chart {
         name: Name,
         category: Category,
     ) -> Result<&[Event], AccountError> {
-        let account_already_exist = self.data.contains(&number.number());
-        if account_already_exist {
-            Err(AccountError::AccountAlreadyOpened(number.number()))
-        } else {
-            let issued_events = vec![Event::AccountOpened {
-                id: number.number(),
-                name: name.into(),
-                category,
-            }];
+        let account_doesnt_exist = !self.data.contains(&number.number());
+        account_doesnt_exist
+            .then_some(())
+            .map(|_| {
+                let issued_events = vec![Event::AccountOpened {
+                    id: number.number(),
+                    name: name.into(),
+                    category,
+                }];
 
-            self.apply(&issued_events);
+                self.apply(&issued_events);
 
-            self.history.extend(issued_events);
+                self.history.extend(issued_events);
 
-            let index = self.history.len().checked_sub(1).unwrap_or_default();
-            let events = &self.history[index..];
+                let index = self.history.len().checked_sub(1).unwrap_or_default();
+                let events = &self.history[index..];
 
-            Ok(events)
-        }
+                events
+            })
+            .ok_or(AccountError::AccountAlreadyOpened(number.number()))
     }
 
     fn apply(&mut self, events: &[Event]) {
