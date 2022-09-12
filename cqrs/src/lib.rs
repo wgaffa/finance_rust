@@ -10,6 +10,7 @@ pub mod events;
 pub mod identifier;
 pub mod stream;
 
+#[derive(Default)]
 pub struct Chart {
     data: HashSet<events::AccountId>,
     history: Vec<Event>,
@@ -22,7 +23,7 @@ impl Chart {
             history: history.to_vec(),
         };
 
-        chart.apply(&history);
+        chart.apply(history);
 
         chart
     }
@@ -48,7 +49,7 @@ impl Chart {
                 let index = self.history.len().checked_sub(len).unwrap_or_default();
                 &self.history[index..]
             })
-            .ok_or(AccountError::AccountAlreadyOpened(number.number()))
+            .ok_or_else(|| AccountError::AccountAlreadyOpened(number.number()))
     }
 
     fn apply(&mut self, events: &[Event]) {
@@ -62,15 +63,6 @@ impl Chart {
                 }
                 _ => {}
             }
-        }
-    }
-}
-
-impl Default for Chart {
-    fn default() -> Self {
-        Self {
-            data: Default::default(),
-            history: Vec::new(),
         }
     }
 }
