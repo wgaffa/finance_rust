@@ -1,10 +1,8 @@
 use personal_finance::account::Category;
+use super::{JournalId, AccountId};
 
 pub mod projections;
 pub mod store;
-
-pub type JournalId = u32;
-pub type AccountId = u32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Balance {
@@ -26,7 +24,7 @@ pub enum Event {
         journal: JournalId,
     },
     Journal {
-        id: u32,
-        description: JournalId,
+        id: JournalId,
+        description: String,
     },
 }
