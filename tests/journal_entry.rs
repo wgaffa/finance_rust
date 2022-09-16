@@ -1,14 +1,16 @@
 use cqrs::{events::{Event, Balance, store::InMemoryStore}, error::JournalError};
 use personal_finance::account::Category;
 
-#[test]
-fn simple_journal_entry() {
-    let event_history = [
+fn events() -> [Event; 2] {
+    [
         Event::AccountOpened { id: 101, name: String::from("Bank account"), category: Category::Asset },
         Event::AccountOpened { id: 501, name: String::from("Groceries"), category: Category::Expenses },
-    ];
+    ]
+}
 
-    let mut journal = cqrs::Journal::new(&event_history);
+#[test]
+fn simple_journal_entry() {
+    let mut journal = cqrs::Journal::new(&events());
     let entry = journal.entry("Starting Balance", &[
         (101, Balance::Credit(50)),
         (501, Balance::Debit(50)),
@@ -28,12 +30,7 @@ fn simple_journal_entry() {
 
 #[test]
 fn imbalanced_journal_entry() {
-    let event_history = [
-        Event::AccountOpened { id: 101, name: String::from("Bank account"), category: Category::Asset },
-        Event::AccountOpened { id: 501, name: String::from("Groceries"), category: Category::Expenses },
-    ];
-
-    let mut journal = cqrs::Journal::new(&event_history);
+    let mut journal = cqrs::Journal::new(&events());
     let entry = journal.entry("Starting Balance", &[
         (101, Balance::Credit(50)),
         (501, Balance::Debit(50)),
@@ -42,4 +39,13 @@ fn imbalanced_journal_entry() {
 
     assert!(entry.is_err());
     assert_eq!(entry, Err(JournalError::ImbalancedTranasactions));
+}
+
+#[test]
+fn empty_transactions_entry_should_be_invalid() {
+    let mut journal = cqrs::Journal::new(&events());
+    let entry = journal.entry("Starting Balance", &[]);
+
+    assert!(entry.is_err());
+    assert_eq!(entry, Err(JournalError::EmptyTransaction));
 }

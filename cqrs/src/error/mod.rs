@@ -19,6 +19,7 @@ impl std::error::Error for AccountError {}
 pub enum JournalError {
     JournalLimitReached,
     ImbalancedTranasactions,
+    EmptyTransaction,
 }
 
 impl fmt::Display for JournalError {
@@ -26,6 +27,7 @@ impl fmt::Display for JournalError {
         match self {
             Self::JournalLimitReached => f.write_str("The maximum journal id exceeded"),
             Self::ImbalancedTranasactions => f.write_str("The balance of the transactions does not equal zero"),
+            Self::EmptyTransaction => f.write_str("A journal must have atleast one transaction"),
         }
     }
 }
