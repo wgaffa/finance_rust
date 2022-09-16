@@ -1,7 +1,7 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Neg};
 
 use error::{AccountError, JournalError};
-use events::Event;
+use events::{Balance, Event};
 use personal_finance::account::{Category, Name, Number};
 
 pub mod behaviour;
@@ -92,29 +92,47 @@ impl Journal {
     pub fn entry<T: Into<String>>(
         &mut self,
         description: T,
-        transactions: &[(AccountId, events::Balance)],
+        transactions: &[(AccountId, Balance)],
     ) -> Result<&[Event], JournalError> {
-        let id = self
-            .current_id
-            .checked_add(1)
-            .ok_or(JournalError::JournalLimitReached)?;
+        transactions
+            .into_iter()
+            .fold(
+                0, |sum, (_, amount)| sum + match *amount {
+                Balance::Credit(x) => i64::from(x).neg(),
+                Balance::Debit(x) => i64::from(x),
+            })
+            .eq(&0)
+            .then_some(())
+            .ok_or(JournalError::ImbalancedTranasactions)
+            .and_then(|()| {
+                self.current_id
+                    .checked_add(1)
+                    .ok_or(JournalError::JournalLimitReached)
+            })
+            .map(|id| {
+                let mut v = vec![Event::Journal {
+                    id,
+                    description: description.into(),
+                }];
+                v.extend(
+                    transactions
+                        .into_iter()
+                        .map(|(account, amount)| Event::Transaction {
+                            account: *account,
+                            amount: *amount,
+                            journal: id,
+                        }),
+                );
 
-        let transactions = transactions.into_iter().map(|(account, amount)| Event::Transaction {
-            account: *account,
-            amount: *amount,
-            journal: id,
-        });
-
-        let events = std::iter::once(Event::Journal { id, description: description.into() })
-            .chain(transactions)
-            .collect::<Vec<_>>();
-
-        self.apply(&events);
-
-        let len = self.history.len();
-        self.history.extend(events);
-
-        Ok(&self.history[len..])
+                v
+            })
+            .map(|events| {
+                self.apply(&events);
+                let len = self.history.len();
+                self.history.extend(events);
+                len
+            })
+            .map(|len| &self.history[len..])
     }
 
     fn apply(&mut self, events: &[Event]) {
