@@ -95,11 +95,12 @@ impl Journal {
         transactions: &[(AccountId, Balance)],
     ) -> Result<&[Event], JournalError> {
         transactions
-            .into_iter()
-            .fold(
-                0, |sum, (_, amount)| sum + match *amount {
-                Balance::Credit(x) => i64::from(x).neg(),
-                Balance::Debit(x) => i64::from(x),
+            .iter()
+            .fold(0, |sum, (_, amount)| {
+                sum + match *amount {
+                    Balance::Credit(x) => i64::from(x).neg(),
+                    Balance::Debit(x) => i64::from(x),
+                }
             })
             .eq(&0)
             .then_some(())
@@ -116,7 +117,7 @@ impl Journal {
                 }];
                 v.extend(
                     transactions
-                        .into_iter()
+                        .iter()
                         .map(|(account, amount)| Event::Transaction {
                             account: *account,
                             amount: *amount,
