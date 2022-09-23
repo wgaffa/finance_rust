@@ -6,13 +6,13 @@ use tokio::{
 
 #[derive(Debug)]
 pub enum MailboxProcessorError {
-    SenderChannelClosed,
+    MailboxProcessTerminated,
 }
 
 impl std::fmt::Display for MailboxProcessorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            Self::SenderChannelClosed => f.write_str("Could not send due to channel is terminated"),
+            Self::MailboxProcessTerminated => f.write_str("Could not send message to mailbox process"),
         }
     }
 }
@@ -44,7 +44,7 @@ impl MailboxProcessor {
             .send(message)
             .await
             .report()
-            .change_context(MailboxProcessorError::SenderChannelClosed)
+            .change_context(MailboxProcessorError::MailboxProcessTerminated)
     }
 }
 
