@@ -2,6 +2,7 @@ use std::{collections::HashSet, ops::Neg};
 
 use crate::{AccountId, Balance, Event, JournalError, JournalId};
 
+#[derive(Default)]
 pub struct Journal {
     current_id: JournalId,
     accounts: HashSet<AccountId>,
@@ -100,3 +101,4 @@ impl Journal {
         }
     }
 }
+

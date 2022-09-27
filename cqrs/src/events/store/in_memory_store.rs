@@ -41,6 +41,10 @@ impl<T> EventStorage<T> for InMemoryStore<T> {
 
         Ok(())
     }
+
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &'a T> + 'a> {
+        Box::new(self.data.iter())
+    }
 }
 
 impl<T> Query for InMemoryStore<T> {
@@ -57,6 +61,15 @@ impl<T> IntoIterator for InMemoryStore<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a InMemoryStore<T> {
+    type IntoIter = std::slice::Iter<'a, T>;
+    type Item = &'a T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter()
     }
 }
 

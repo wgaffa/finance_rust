@@ -1,8 +1,17 @@
-use error_stack::{Result, ResultExt, IntoReport};
+use cqrs::{Event, events::store::InMemoryStore};
+use error_stack::{IntoReport, Result, ResultExt};
 use tokio::{
-    sync::{self, mpsc::{self, Sender}},
+    sync::{
+        self,
+        mpsc::{self, Sender},
+    },
     task,
 };
+
+mod message;
+mod command_handler;
+
+pub use message::Message;
 
 #[derive(Debug)]
 pub enum MailboxProcessorError {
@@ -12,7 +21,9 @@ pub enum MailboxProcessorError {
 impl std::fmt::Display for MailboxProcessorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            Self::MailboxProcessTerminated => f.write_str("Could not send message to mailbox process"),
+            Self::MailboxProcessTerminated => {
+                f.write_str("Could not send message to mailbox process")
+            }
         }
     }
 }
@@ -28,10 +39,12 @@ impl MailboxProcessor {
         let (sender, mut receiver) = mpsc::channel(32);
 
         task::spawn(async move {
+            let mut handler = command_handler::CommandHandler::new(InMemoryStore::default());
+
             loop {
                 match receiver.recv().await {
                     None => break,
-                    Some(message) => process_message(message).await,
+                    Some(message) => handler.process_message(message).await,
                 }
             }
         });
@@ -48,18 +61,3 @@ impl MailboxProcessor {
     }
 }
 
-async fn process_message(message: Message) {
-    use futures::future::OptionFuture;
-
-    match message {
-        Message::CreateAccount { id, description, reply_channel } => {
-            dbg!((id, description));
-            OptionFuture::from(reply_channel.map(|rc| async { rc.send(()) })).await;
-        },
-    }
-}
-
-#[derive(Debug)]
-pub enum Message {
-    CreateAccount { id: u32, description: String, reply_channel: Option<sync::oneshot::Sender<()>> },
-}

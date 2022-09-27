@@ -1,7 +1,7 @@
 use std::{collections::HashSet, ops::Neg};
 
 use error::{AccountError, JournalError};
-use events::{Balance, Event};
+pub use events::{Balance, Event};
 use personal_finance::account::{Category, Name, Number};
 
 pub mod behaviour;

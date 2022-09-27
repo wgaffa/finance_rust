@@ -9,6 +9,8 @@ pub trait EventStorage<T> {
     fn evolve<F>(&mut self, producer: F) -> Result<(), Self::Error>
     where
         F: Fn(&[T]) -> Vec<T>;
+
+    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &'a T> + 'a>;
 }
 
 pub trait Query {
