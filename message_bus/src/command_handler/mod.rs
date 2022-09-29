@@ -6,11 +6,11 @@ use tokio::{
     task,
 };
 
-use cqrs::{Event, events::store::EventStorage};
 use crate::Message;
+use cqrs::{events::store::EventStorage, Event};
+use personal_finance::account::Name;
 
-pub struct CommandHandler<T>
-{
+pub struct CommandHandler<T> {
     store_handle: T,
 }
 
@@ -34,12 +34,25 @@ where
             Message::CreateAccount {
                 id,
                 description,
+                category,
                 reply_channel,
             } => {
-                // Fire up the aggregate root Chart
-                // Issue the command on the AR
-                // Store the resulting events in the store
-                OptionFuture::from(reply_channel.map(|rc| async { rc.send(Ok(())) })).await;
+                let events = self.store_handle.all().cloned().collect::<Vec<_>>();
+                let mut chart = cqrs::Chart::new(&events);
+                let entry = chart.open(id.into(), Name::new(description).unwrap(), category);
+
+                match entry {
+                    Ok(events) => {
+                        for event in events {
+                            self.store_handle.append(event.clone());
+                        }
+
+                        OptionFuture::from(reply_channel.map(|rc| async { rc.send(Ok(())) })).await;
+                    }
+                    Err(e) => {
+                        OptionFuture::from(reply_channel.map(|rc| async { rc.send(Err(e)) })).await;
+                    }
+                }
             }
             Message::JournalEntry {
                 description,
@@ -75,4 +88,3 @@ where
         }
     }
 }
-

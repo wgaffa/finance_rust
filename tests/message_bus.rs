@@ -1,7 +1,8 @@
-use tokio::{task, sync};
+use personal_finance::account::Category;
+use tokio::{sync, task};
 
+use cqrs::{error::AccountError, events::Balance};
 use message_bus::{MailboxProcessor, Message};
-use cqrs::events::Balance;
 
 #[tokio::test]
 async fn create_account() {
@@ -12,6 +13,7 @@ async fn create_account() {
         .post(Message::CreateAccount {
             id: 101,
             description: String::from("Bank account"),
+            category: Category::Asset,
             reply_channel: Some(tx),
         })
         .await;
@@ -20,6 +22,42 @@ async fn create_account() {
 
     assert!(result.is_ok());
     assert!(response.is_ok());
+}
+
+#[tokio::test]
+async fn create_duplicate_account() {
+    let mb = message_bus::MailboxProcessor::new().await;
+
+    let (tx, mut rx) = sync::oneshot::channel();
+
+    let result = mb
+        .post(Message::CreateAccount {
+            id: 101,
+            description: String::from("Bank account"),
+            category: Category::Asset,
+            reply_channel: Some(tx),
+        })
+        .await;
+
+    let response = rx.await.unwrap();
+
+    assert!(result.is_ok());
+    assert!(response.is_ok());
+
+    let (tx, mut rx) = sync::oneshot::channel();
+    let result = mb
+        .post(Message::CreateAccount {
+            id: 101,
+            description: String::from("Duplicate account"),
+            category: Category::Asset,
+            reply_channel: Some(tx),
+        })
+        .await;
+
+    let response = rx.await.unwrap();
+
+    assert!(result.is_ok());
+    assert_eq!(response, Err(AccountError::AccountAlreadyOpened(101)));
 }
 
 #[tokio::test]
