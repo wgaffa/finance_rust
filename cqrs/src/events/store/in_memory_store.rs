@@ -42,8 +42,8 @@ impl<T> EventStorage<T> for InMemoryStore<T> {
         Ok(())
     }
 
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &'a T> + 'a> {
-        Box::new(self.data.iter())
+    fn all(&self) -> &[T] {
+        &self.data
     }
 }
 

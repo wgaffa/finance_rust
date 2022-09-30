@@ -1,13 +1,15 @@
+use futures::future::OptionFuture;
 use tokio::{
     sync::{
         self,
         mpsc::{self, Sender},
+        oneshot,
     },
     task,
 };
 
 use crate::Message;
-use cqrs::{events::store::EventStorage, Event};
+use cqrs::{error::JournalError, events::store::EventStorage, Event};
 use personal_finance::account::Name;
 
 pub struct CommandHandler<T> {
@@ -25,11 +27,17 @@ where
 
 impl<'a, T> CommandHandler<T>
 where
-    T: EventStorage<Event>,
+    T: EventStorage<Event> + Extend<Event>,
 {
-    pub async fn process_message(&'a mut self, message: Message) {
-        use futures::future::OptionFuture;
+    pub async fn send_reply<U, E>(
+        &mut self,
+        reply_channel: Option<oneshot::Sender<Result<U, E>>>,
+        reply: Result<U, E>,
+    ) {
+        OptionFuture::from(reply_channel.map(|rc| async { rc.send(reply) })).await;
+    }
 
+    pub async fn process_message(&mut self, message: Message) {
         match message {
             Message::CreateAccount {
                 id,
@@ -37,53 +45,34 @@ where
                 category,
                 reply_channel,
             } => {
-                let events = self.store_handle.all().cloned().collect::<Vec<_>>();
+                let mut events = self.store_handle.all();
                 let mut chart = cqrs::Chart::new(&events);
                 let entry = chart.open(id.into(), Name::new(description).unwrap(), category);
 
-                match entry {
-                    Ok(events) => {
-                        for event in events {
-                            self.store_handle.append(event.clone());
-                        }
-
-                        OptionFuture::from(reply_channel.map(|rc| async { rc.send(Ok(())) })).await;
-                    }
-                    Err(e) => {
-                        OptionFuture::from(reply_channel.map(|rc| async { rc.send(Err(e)) })).await;
-                    }
-                }
+                let entry = entry.map(|events| self.store_handle.extend(events.iter().cloned()));
+                self.send_reply(reply_channel, entry).await;
             }
             Message::JournalEntry {
                 description,
                 transactions,
                 reply_channel,
             } => {
-                let events = self.store_handle.all().cloned().collect::<Vec<_>>();
+                let events = self.store_handle.all();
                 let mut journal = cqrs::Journal::new(&events);
-                let entry = dbg!(journal.entry(description, &transactions));
+                let entry = journal.entry(description, &transactions);
 
-                match entry {
-                    Ok(events) => {
-                        if let cqrs::Event::Journal { id, .. } = events
-                            .iter()
-                            .find(|e| matches!(e, cqrs::Event::Journal { .. }))
-                            .unwrap()
-                        {
-                            for event in events {
-                                self.store_handle.append(event.clone());
-                            }
-
-                            OptionFuture::from(
-                                reply_channel.map(|rc| async { rc.send(Ok(*id as usize)) }),
-                            )
-                            .await;
-                        }
+                let entry = entry.and_then(|events| {
+                    if let Some(cqrs::Event::Journal { id, .. }) = events
+                        .iter()
+                        .find(|e| matches!(e, cqrs::Event::Journal { .. }))
+                    {
+                        self.store_handle.extend(events.iter().cloned());
+                        Ok(*id as usize)
+                    } else {
+                        Err(JournalError::NoJournalEvent)
                     }
-                    Err(e) => {
-                        OptionFuture::from(reply_channel.map(|rc| async { rc.send(Err(e)) })).await;
-                    }
-                };
+                });
+                self.send_reply(reply_channel, entry).await;
             }
         }
     }

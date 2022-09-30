@@ -20,6 +20,7 @@ pub enum JournalError {
     JournalLimitReached,
     ImbalancedTranasactions,
     EmptyTransaction,
+    NoJournalEvent,
 }
 
 impl fmt::Display for JournalError {
@@ -28,6 +29,7 @@ impl fmt::Display for JournalError {
             Self::JournalLimitReached => f.write_str("The maximum journal id exceeded"),
             Self::ImbalancedTranasactions => f.write_str("The balance of the transactions does not equal zero"),
             Self::EmptyTransaction => f.write_str("A journal must have atleast one transaction"),
+            Self::NoJournalEvent => f.write_str("No journal event in the stream")
         }
     }
 }

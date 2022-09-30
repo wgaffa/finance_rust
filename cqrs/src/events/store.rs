@@ -10,7 +10,7 @@ pub trait EventStorage<T> {
     where
         F: Fn(&[T]) -> Vec<T>;
 
-    fn all<'a>(&'a self) -> Box<dyn Iterator<Item = &'a T> + 'a>;
+    fn all(& self) -> &[T];
 }
 
 pub trait Query {

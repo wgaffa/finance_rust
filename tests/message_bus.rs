@@ -68,10 +68,7 @@ async fn create_journal() {
     let result = mb
         .post(Message::JournalEntry {
             description: String::from("Grocery shopping"),
-            transactions: vec![
-                (101, Balance::Credit(150)),
-                (501, Balance::Debit(150)),
-            ],
+            transactions: vec![(101, Balance::Credit(150)), (501, Balance::Debit(150))],
             reply_channel: Some(tx),
         })
         .await;
