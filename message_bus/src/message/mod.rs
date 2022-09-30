@@ -1,6 +1,6 @@
 use tokio::sync;
 
-use cqrs::events::Balance;
+use cqrs::{events::Balance, JournalId};
 use personal_finance::account::Category;
 
 type Responder<T, E> = Option<sync::oneshot::Sender<Result<T, E>>>;
@@ -16,6 +16,6 @@ pub enum Message {
     JournalEntry {
         description: String,
         transactions: Vec<(u32, Balance)>,
-        reply_channel: Responder<usize, cqrs::error::JournalError>,
+        reply_channel: Responder<JournalId, cqrs::error::JournalError>,
     },
 }
