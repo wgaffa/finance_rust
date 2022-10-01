@@ -30,8 +30,8 @@ impl Chart {
     ) -> Result<&[Event], AccountError> {
         let account_doesnt_exist = !self.data.contains(&number.number());
         account_doesnt_exist
-            .then(|| (number.number(), name.into_inner(), category))
-            .map(|(id, name, category)| vec![Event::AccountOpened { id, name, category }])
+            .then_some(())
+            .map(|()| vec![Event::AccountOpened { id: number, name, category }])
             .map(|issued_events| {
                 let len = issued_events.len();
                 self.apply(&issued_events);
@@ -50,10 +50,10 @@ impl Chart {
         for event in events {
             match event {
                 Event::AccountOpened { id, .. } => {
-                    self.data.insert(*id);
+                    self.data.insert(id.number());
                 }
                 Event::AccountClosed(id) => {
-                    self.data.remove(id);
+                    self.data.remove(&id.number());
                 }
                 _ => {}
             }

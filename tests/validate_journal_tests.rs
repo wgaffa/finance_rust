@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 
 use personal_finance::{
-    account::{self, Category},
+    account::{Category, Name, Number},
     balance::Transaction,
     entry::{Account, Journal},
 };
@@ -9,14 +9,18 @@ use personal_finance::{
 pub fn accounts() -> Vec<Account> {
     vec![
         Account::new(
-            101,
-            account::Name::new("Bank account").unwrap(),
+            Number::new(101).unwrap(),
+            Name::new("Bank account").unwrap(),
             Category::Asset,
         ),
-        Account::new(102, account::Name::new("Cash").unwrap(), Category::Asset),
         Account::new(
-            501,
-            account::Name::new("Groceries").unwrap(),
+            Number::new(102).unwrap(),
+            Name::new("Cash").unwrap(),
+            Category::Asset,
+        ),
+        Account::new(
+            Number::new(501).unwrap(),
+            Name::new("Groceries").unwrap(),
             Category::Expenses,
         ),
     ]

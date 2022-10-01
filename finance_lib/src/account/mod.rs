@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, num::NonZeroU32};
 
 mod category;
 
@@ -6,34 +6,34 @@ pub use category::Category;
 
 /// An account number to identify an account.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Number(u32);
+pub struct Number(NonZeroU32);
 
 impl Number {
     /// Create a new [Number] with a positive integer
-    pub fn new(value: u32) -> Self {
-        Self(value)
+    pub fn new(value: u32) -> Option<Self> {
+        NonZeroU32::new(value).map(|v| Self(v))
     }
 
     pub fn number(&self) -> u32 {
-        self.0
-    }
-}
-
-impl From<u32> for Number {
-    fn from(value: u32) -> Self {
-        Self(value)
+        self.0.get()
     }
 }
 
 impl From<Number> for u32 {
     fn from(number: Number) -> Self {
-        number.0
+        number.0.get()
+    }
+}
+
+impl From<NonZeroU32> for Number {
+    fn from(v: NonZeroU32) -> Self {
+        Self(v)
     }
 }
 
 impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.0.get())
     }
 }
 

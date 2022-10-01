@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use futures::future::OptionFuture;
 use tokio::{
     sync::{
@@ -8,7 +9,7 @@ use tokio::{
     task,
 };
 
-use crate::Message;
+use crate::{Message, message::Responder};
 use cqrs::{
     error::{AccountError, JournalError},
     events::store::EventStorage,
@@ -17,7 +18,7 @@ use cqrs::{
     JournalId, Balance,
 };
 use personal_finance::{
-    account::{Category, Name},
+    account::{Category, Name, Number},
     entry::Journal,
 };
 
@@ -33,8 +34,6 @@ where
         Self { store_handle }
     }
 }
-
-type Responder<U, E> = Option<oneshot::Sender<Result<U, E>>>;
 
 impl<'a, T> CommandHandler<T>
 where
@@ -58,9 +57,10 @@ where
             Message::JournalEntry {
                 description,
                 transactions,
+                date,
                 reply_channel,
             } => {
-                self.process_journal_entry_message(description, transactions, reply_channel)
+                self.process_journal_entry_message(description, transactions, date, reply_channel)
                     .await
             }
         }
@@ -68,14 +68,14 @@ where
 
     pub async fn process_create_account_message(
         &mut self,
-        id: JournalId,
-        description: String,
+        id: Number,
+        description: Name,
         category: Category,
         reply_channel: Responder<(), AccountError>,
     ) {
         let mut events = self.store_handle.all();
         let mut chart = cqrs::Chart::new(&events);
-        let entry = chart.open(id.into(), Name::new(description).unwrap(), category);
+        let entry = chart.open(id, description, category);
 
         let entry = entry.map(|events| self.store_handle.extend(events.iter().cloned()));
         self.send_reply(reply_channel, entry).await;
@@ -84,12 +84,13 @@ where
     pub async fn process_journal_entry_message(
         &mut self,
         description: String,
-        transactions: Vec<(AccountId, Balance)>,
+        transactions: Vec<(Number, Balance)>,
+        date: Date<Utc>,
         reply_channel: Responder<JournalId, JournalError>,
     ) {
         let events = self.store_handle.all();
         let mut journal = cqrs::Journal::new(&events);
-        let entry = journal.entry(description, &transactions);
+        let entry = journal.entry(description, &transactions, date);
 
         let entry = entry.and_then(|events| {
             if let Some(cqrs::Event::Journal { id, .. }) = events

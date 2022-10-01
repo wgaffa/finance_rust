@@ -1,8 +1,12 @@
-use personal_finance::account::Category;
+use chrono::prelude::*;
 use tokio::{sync, task};
 
-use cqrs::{error::AccountError, events::Balance};
+use cqrs::error::AccountError;
 use message_bus::{MailboxProcessor, Message};
+use personal_finance::{
+    account::{Category, Name, Number},
+    balance::Balance,
+};
 
 #[tokio::test]
 async fn create_account() {
@@ -11,8 +15,8 @@ async fn create_account() {
     let (tx, mut rx) = sync::oneshot::channel();
     let result = mb
         .post(Message::CreateAccount {
-            id: 101,
-            description: String::from("Bank account"),
+            id: Number::new(101).unwrap(),
+            description: Name::new("Bank account").unwrap(),
             category: Category::Asset,
             reply_channel: Some(tx),
         })
@@ -32,8 +36,8 @@ async fn create_duplicate_account() {
 
     let result = mb
         .post(Message::CreateAccount {
-            id: 101,
-            description: String::from("Bank account"),
+            id: Number::new(101).unwrap(),
+            description: Name::new("Bank account").unwrap(),
             category: Category::Asset,
             reply_channel: Some(tx),
         })
@@ -47,8 +51,8 @@ async fn create_duplicate_account() {
     let (tx, mut rx) = sync::oneshot::channel();
     let result = mb
         .post(Message::CreateAccount {
-            id: 101,
-            description: String::from("Duplicate account"),
+            id: Number::new(101).unwrap(),
+            description: Name::new("Duplicate account").unwrap(),
             category: Category::Asset,
             reply_channel: Some(tx),
         })
@@ -68,7 +72,11 @@ async fn create_journal() {
     let result = mb
         .post(Message::JournalEntry {
             description: String::from("Grocery shopping"),
-            transactions: vec![(101, Balance::Credit(150)), (501, Balance::Debit(150))],
+            transactions: vec![
+                (Number::new(101).unwrap(), Balance::credit(150).unwrap()),
+                (Number::new(501).unwrap(), Balance::debit(150).unwrap()),
+            ],
+            date: Utc::now().date(),
             reply_channel: Some(tx),
         })
         .await;
@@ -84,9 +92,10 @@ async fn create_journal() {
         .post(Message::JournalEntry {
             description: String::from("Salary"),
             transactions: vec![
-                (101, Balance::Debit(10_000)),
-                (401, Balance::Credit(10_000)),
+                (Number::new(101).unwrap(), Balance::debit(10_000).unwrap()),
+                (Number::new(401).unwrap(), Balance::credit(10_000).unwrap()),
             ],
+            date: Utc::now().date(),
             reply_channel: Some(tx),
         })
         .await;

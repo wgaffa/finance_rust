@@ -63,6 +63,7 @@ checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 name = "cqrs"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "error-stack",
  "personal_finance",
  "quickcheck",
@@ -278,6 +279,7 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 name = "message_bus"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "cqrs",
  "error-stack",
  "futures",

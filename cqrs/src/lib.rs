@@ -1,10 +1,9 @@
 use std::{collections::HashSet, ops::Neg};
 
 use error::{AccountError, JournalError};
-pub use events::{Balance, Event};
-use personal_finance::account::{Category, Name, Number};
+pub use events::Event;
+pub use personal_finance::{balance::Balance, account::{Category, Name, Number}};
 
-pub mod behaviour;
 pub mod error;
 pub mod events;
 pub mod identifier;

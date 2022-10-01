@@ -1,21 +1,23 @@
+use chrono::prelude::*;
 use tokio::sync;
 
-use cqrs::{events::Balance, JournalId};
-use personal_finance::account::Category;
+use cqrs::JournalId;
+use personal_finance::{balance::Balance, account::{Category, Name, Number}};
 
-type Responder<T, E> = Option<sync::oneshot::Sender<Result<T, E>>>;
+pub type Responder<T, E> = Option<sync::oneshot::Sender<Result<T, E>>>;
 
 #[derive(Debug)]
 pub enum Message {
     CreateAccount {
-        id: u32,
-        description: String,
+        id: Number,
+        description: Name,
         category: Category,
         reply_channel: Responder<(), cqrs::error::AccountError>,
     },
     JournalEntry {
         description: String,
-        transactions: Vec<(u32, Balance)>,
+        transactions: Vec<(Number, Balance)>,
+        date: Date<Utc>,
         reply_channel: Responder<JournalId, cqrs::error::JournalError>,
     },
 }

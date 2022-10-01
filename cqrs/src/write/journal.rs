@@ -1,5 +1,8 @@
 use std::{collections::HashSet, ops::Neg};
 
+use chrono::prelude::*;
+use personal_finance::account::Number;
+
 use crate::{AccountId, Balance, Event, JournalError, JournalId};
 
 #[derive(Default)]
@@ -11,19 +14,21 @@ pub struct Journal {
 
 fn transcribe_amount(amount: Balance) -> i64 {
     match amount {
-        Balance::Debit(x) => i64::from(x),
-        Balance::Credit(x) => i64::from(x).neg(),
+        Balance::Debit(x) => i64::from(x.amount()),
+        Balance::Credit(x) => i64::from(x.amount()).neg(),
     }
 }
 
 fn make_journal(
     id: JournalId,
     description: String,
-    transactions: &[(AccountId, Balance)],
+    transactions: &[(Number, Balance)],
+    date: Date<Utc>,
 ) -> Vec<Event> {
     let mut v = vec![Event::Journal {
         id,
         description: description.into(),
+        date
     }];
     v.extend(
         transactions
@@ -60,7 +65,8 @@ impl Journal {
     pub fn entry<T: Into<String>>(
         &mut self,
         description: T,
-        transactions: &[(AccountId, Balance)],
+        transactions: &[(Number, Balance)],
+        date: Date<Utc>,
     ) -> Result<&[Event], JournalError> {
         transactions
             .len()
@@ -75,7 +81,7 @@ impl Journal {
                     .then_some(())
                     .ok_or(JournalError::ImbalancedTranasactions)
                     .and_then(|()| next_id(self.current_id))
-                    .map(|id| make_journal(id, description.into(), &transactions))
+                    .map(|id| make_journal(id, description.into(), &transactions, date))
                     .map(|events| {
                         self.apply(&events);
                         let len = self.history.len();
@@ -90,10 +96,10 @@ impl Journal {
         for event in events {
             match event {
                 Event::AccountOpened { id, .. } => {
-                    self.accounts.insert(*id);
+                    self.accounts.insert(id.number());
                 }
                 Event::AccountClosed(id) => {
-                    self.accounts.remove(id);
+                    self.accounts.remove(&id.number());
                 }
                 Event::Journal { id, .. } => self.current_id = self.current_id.max(*id),
                 _ => {}
