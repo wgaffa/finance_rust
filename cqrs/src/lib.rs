@@ -2,7 +2,10 @@ use std::{collections::HashSet, ops::Neg};
 
 use error::{AccountError, JournalError};
 pub use events::Event;
-pub use personal_finance::{balance::Balance, account::{Category, Name, Number}};
+pub use personal_finance::{
+    account::{Category, Name, Number},
+    balance::Balance,
+};
 
 pub mod error;
 pub mod events;
