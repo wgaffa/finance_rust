@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use chrono::prelude::*;
 use futures::future::OptionFuture;
 use tokio::{
@@ -9,7 +10,7 @@ use tokio::{
     task,
 };
 
-use crate::{Message, message::Responder};
+use crate::{Message, message::Responder, MessageProcessor};
 use cqrs::{
     error::{AccountError, JournalError},
     events::store::EventStorage,
@@ -39,34 +40,11 @@ impl<'a, T> CommandHandler<T>
 where
     T: EventStorage<Event> + Extend<Event>,
 {
-    pub async fn send_reply<U, E>(&mut self, reply_channel: Responder<U, E>, reply: Result<U, E>) {
+    async fn send_reply<U, E>(&mut self, reply_channel: Responder<U, E>, reply: Result<U, E>) {
         OptionFuture::from(reply_channel.map(|rc| async { rc.send(reply) })).await;
     }
 
-    pub async fn process_message(&mut self, message: Message) {
-        match message {
-            Message::CreateAccount {
-                id,
-                description,
-                category,
-                reply_channel,
-            } => {
-                self.process_create_account_message(id, description, category, reply_channel)
-                    .await
-            }
-            Message::JournalEntry {
-                description,
-                transactions,
-                date,
-                reply_channel,
-            } => {
-                self.process_journal_entry_message(description, transactions, date, reply_channel)
-                    .await
-            }
-        }
-    }
-
-    pub async fn process_create_account_message(
+    async fn process_create_account_message(
         &mut self,
         id: Number,
         description: Name,
@@ -81,7 +59,7 @@ where
         self.send_reply(reply_channel, entry).await;
     }
 
-    pub async fn process_journal_entry_message(
+    async fn process_journal_entry_message(
         &mut self,
         description: String,
         transactions: Vec<(Number, Balance)>,
@@ -104,5 +82,34 @@ where
             }
         });
         self.send_reply(reply_channel, entry).await;
+    }
+}
+
+#[async_trait]
+impl<T> MessageProcessor<Message> for CommandHandler<T>
+where
+    T: EventStorage<Event> + Extend<Event> + Send,
+{
+    async fn process_message(&mut self, message: Message) {
+        match message {
+            Message::CreateAccount {
+                id,
+                description,
+                category,
+                reply_channel,
+            } => {
+                self.process_create_account_message(id, description, category, reply_channel)
+                    .await
+            }
+            Message::JournalEntry {
+                description,
+                transactions,
+                date,
+                reply_channel,
+            } => {
+                self.process_journal_entry_message(description, transactions, date, reply_channel)
+                    .await
+            }
+        }
     }
 }

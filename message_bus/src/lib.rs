@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use cqrs::{Event, events::store::InMemoryStore};
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio::{
@@ -12,6 +13,7 @@ mod message;
 mod command_handler;
 
 pub use message::Message;
+pub use command_handler::CommandHandler;
 
 #[derive(Debug)]
 pub enum MailboxProcessorError {
@@ -30,21 +32,28 @@ impl std::fmt::Display for MailboxProcessorError {
 
 impl std::error::Error for MailboxProcessorError {}
 
+#[async_trait]
+pub trait MessageProcessor<T> {
+    async fn process_message(&mut self, message: T);
+}
+
 pub struct MailboxProcessor {
     sender: Sender<Message>,
 }
 
-impl MailboxProcessor {
-    pub async fn new() -> Self {
+impl MailboxProcessor
+{
+    pub async fn new<P>(mut message_processor: P) -> Self
+    where
+        P: MessageProcessor<Message> + Send + 'static
+    {
         let (sender, mut receiver) = mpsc::channel(32);
 
         task::spawn(async move {
-            let mut handler = command_handler::CommandHandler::new(InMemoryStore::default());
-
             loop {
                 match receiver.recv().await {
                     None => break,
-                    Some(message) => handler.process_message(message).await,
+                    Some(message) => message_processor.process_message(message).await,
                 }
             }
         });

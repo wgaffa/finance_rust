@@ -1,16 +1,21 @@
 use chrono::prelude::*;
 use tokio::{sync, task};
 
-use cqrs::error::AccountError;
-use message_bus::{MailboxProcessor, Message};
+use cqrs::{events::store::InMemoryStore, error::AccountError};
+use message_bus::{MailboxProcessor, Message, CommandHandler};
 use personal_finance::{
     account::{Category, Name, Number},
     balance::Balance,
 };
 
+async fn default_mailbox() -> MailboxProcessor {
+    let handler = CommandHandler::new(InMemoryStore::default());
+    MailboxProcessor::new(handler).await
+}
+
 #[tokio::test]
 async fn create_account() {
-    let mb = message_bus::MailboxProcessor::new().await;
+    let mb = default_mailbox().await;
 
     let (tx, mut rx) = sync::oneshot::channel();
     let result = mb
@@ -30,7 +35,7 @@ async fn create_account() {
 
 #[tokio::test]
 async fn create_duplicate_account() {
-    let mb = message_bus::MailboxProcessor::new().await;
+    let mb = default_mailbox().await;
 
     let (tx, mut rx) = sync::oneshot::channel();
 
@@ -66,7 +71,7 @@ async fn create_duplicate_account() {
 
 #[tokio::test]
 async fn create_journal() {
-    let mb = message_bus::MailboxProcessor::new().await;
+    let mb = default_mailbox().await;
 
     let (tx, mut rx) = sync::oneshot::channel();
     let result = mb
