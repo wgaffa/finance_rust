@@ -10,13 +10,14 @@ use tokio::{
     task,
 };
 
-use crate::{Message, message::Responder, MessageProcessor};
+use crate::{message::Responder, Message, MessageProcessor};
 use cqrs::{
     error::{AccountError, JournalError},
     events::store::EventStorage,
     AccountId,
+    Balance,
     Event,
-    JournalId, Balance,
+    JournalId,
 };
 use personal_finance::{
     account::{Category, Name, Number},

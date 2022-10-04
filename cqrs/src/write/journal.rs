@@ -28,7 +28,7 @@ fn make_journal(
     let mut v = vec![Event::Journal {
         id,
         description: description.into(),
-        date
+        date,
     }];
     v.extend(
         transactions
@@ -120,4 +120,3 @@ impl Journal {
         }
     }
 }
-

@@ -1,8 +1,11 @@
 use chrono::prelude::*;
 use tokio::{sync, task};
 
-use cqrs::{events::store::InMemoryStore, error::{AccountError, JournalError}};
-use message_bus::{MailboxProcessor, Message, CommandHandler};
+use cqrs::{
+    error::{AccountError, JournalError},
+    events::store::InMemoryStore,
+};
+use message_bus::{CommandHandler, MailboxProcessor, Message};
 use personal_finance::{
     account::{Category, Name, Number},
     balance::Balance,

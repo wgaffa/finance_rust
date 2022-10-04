@@ -1,6 +1,9 @@
+use super::{AccountId, JournalId};
 use chrono::prelude::*;
-use personal_finance::{balance::Balance, account::{Category, Name, Number}};
-use super::{JournalId, AccountId};
+use personal_finance::{
+    account::{Category, Name, Number},
+    balance::Balance,
+};
 
 pub mod projections;
 pub mod store;

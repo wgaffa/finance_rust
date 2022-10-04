@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use cqrs::{Event, events::store::InMemoryStore};
+use cqrs::{events::store::InMemoryStore, Event};
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio::{
     sync::{
@@ -9,11 +9,11 @@ use tokio::{
     task,
 };
 
-mod message;
 mod command_handler;
+mod message;
 
-pub use message::Message;
 pub use command_handler::CommandHandler;
+pub use message::Message;
 
 #[derive(Debug)]
 pub enum MailboxProcessorError {
@@ -41,11 +41,10 @@ pub struct MailboxProcessor {
     sender: Sender<Message>,
 }
 
-impl MailboxProcessor
-{
+impl MailboxProcessor {
     pub async fn new<P>(mut message_processor: P) -> Self
     where
-        P: MessageProcessor<Message> + Send + 'static
+        P: MessageProcessor<Message> + Send + 'static,
     {
         let (sender, mut receiver) = mpsc::channel(32);
 
@@ -69,4 +68,3 @@ impl MailboxProcessor
             .change_context(MailboxProcessorError::MailboxProcessTerminated)
     }
 }
-

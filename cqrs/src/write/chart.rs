@@ -31,7 +31,13 @@ impl Chart {
         let account_doesnt_exist = !self.data.contains(&number.number());
         account_doesnt_exist
             .then_some(())
-            .map(|()| vec![Event::AccountOpened { id: number, name, category }])
+            .map(|()| {
+                vec![Event::AccountOpened {
+                    id: number,
+                    name,
+                    category,
+                }]
+            })
             .map(|issued_events| {
                 let len = issued_events.len();
                 self.apply(&issued_events);

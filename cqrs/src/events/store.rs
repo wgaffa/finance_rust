@@ -10,7 +10,7 @@ pub trait EventStorage<T> {
     where
         F: Fn(&[T]) -> Vec<T>;
 
-    fn all(& self) -> &[T];
+    fn all(&self) -> &[T];
 }
 
 pub trait Query {

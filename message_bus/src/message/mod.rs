@@ -2,7 +2,10 @@ use chrono::prelude::*;
 use tokio::sync;
 
 use cqrs::JournalId;
-use personal_finance::{balance::Balance, account::{Category, Name, Number}};
+use personal_finance::{
+    account::{Category, Name, Number},
+    balance::Balance,
+};
 
 pub type Responder<T, E> = Option<sync::oneshot::Sender<Result<T, E>>>;
 
