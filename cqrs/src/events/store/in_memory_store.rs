@@ -1,4 +1,4 @@
-use super::{EventStorage, Query};
+use super::EventStorage;
 
 pub struct InMemoryStore<T> {
     data: Vec<T>,
@@ -14,41 +14,10 @@ impl<T> InMemoryStore<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct EvolveError;
-
-impl std::fmt::Display for EvolveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Could not evolve")
-    }
-}
-
-impl std::error::Error for EvolveError {}
-
 impl<T> EventStorage<T> for InMemoryStore<T> {
-    type Error = error_stack::Report<EvolveError>;
-
     fn append(&mut self, event: T) {
         self.data.push(event)
     }
-
-    fn evolve<F>(&mut self, producer: F) -> Result<(), Self::Error>
-    where
-        F: Fn(&[T]) -> Vec<T>,
-    {
-        let new_events = producer(&self.data);
-        self.data.extend(new_events);
-
-        Ok(())
-    }
-
-    fn all(&self) -> &[T] {
-        &self.data
-    }
-}
-
-impl<T> Query for InMemoryStore<T> {
-    type Item = T;
 
     fn all(&self) -> &[T] {
         &self.data

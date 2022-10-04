@@ -165,3 +165,24 @@ async fn adding_a_transaction_to_a_non_existing_account_should_be_an_error() {
     let response = rx.await.unwrap();
     assert_eq!(response, Err(JournalError::InvalidTransaction))
 }
+
+#[tokio::test]
+async fn adding_no_transactions_to_an_entry_should_give_an_error() {
+    let mb = default_mailbox().await;
+    add_default_account(&mb).await;
+
+    let (tx, mut rx) = sync::oneshot::channel();
+    let result = mb
+        .post(Message::JournalEntry {
+            description: String::from("Grocery shopping"),
+            transactions: vec![],
+            date: Utc::now().date(),
+            reply_channel: Some(tx),
+        })
+        .await;
+
+    assert!(result.is_ok());
+
+    let response = rx.await.unwrap();
+    assert_eq!(response, Err(JournalError::EmptyTransaction))
+}
