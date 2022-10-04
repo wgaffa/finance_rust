@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.22"
-error-stack = "0.1.1"
+error-stack = "0.2.1"
 personal_finance = { version = "0.1.0", path = "../finance_lib" }
 
 [dev-dependencies]
