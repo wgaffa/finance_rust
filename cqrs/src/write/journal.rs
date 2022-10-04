@@ -80,16 +80,23 @@ impl Journal {
                     .eq(&0)
                     .then_some(())
                     .ok_or(JournalError::ImbalancedTranasactions)
-                    .and_then(|()| next_id(self.current_id))
-                    .map(|id| make_journal(id, description.into(), &transactions, date))
-                    .map(|events| {
-                        self.apply(&events);
-                        let len = self.history.len();
-                        self.history.extend(events);
-                        len
-                    })
-                    .map(|len| &self.history[len..])
             })
+            .and_then(|()| {
+                transactions
+                    .iter()
+                    .all(|(number, _)| self.accounts.contains(&number.number()))
+                    .then_some(())
+                    .ok_or(JournalError::InvalidTransaction)
+            })
+            .and_then(|()| next_id(self.current_id))
+            .map(|id| make_journal(id, description.into(), &transactions, date))
+            .map(|events| {
+                self.apply(&events);
+                let len = self.history.len();
+                self.history.extend(events);
+                len
+            })
+            .map(|len| &self.history[len..])
     }
 
     fn apply(&mut self, events: &[Event]) {
