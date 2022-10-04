@@ -74,19 +74,25 @@ impl Journal {
             .then_some(())
             .ok_or(JournalError::EmptyTransaction)
             .and_then(|()| {
-                transactions
-                    .iter()
-                    .fold(0, |sum, (_, amount)| sum + transcribe_amount(*amount))
-                    .eq(&0)
-                    .then_some(())
-                    .ok_or(JournalError::ImbalancedTranasactions)
-            })
-            .and_then(|()| {
-                transactions
-                    .iter()
-                    .all(|(number, _)| self.accounts.contains(&number.number()))
-                    .then_some(())
-                    .ok_or(JournalError::InvalidTransaction)
+                let mut account_exists = true;
+                let mut balance = 0;
+                for (number, amount) in transactions.iter() {
+                    account_exists = account_exists
+                        .then(|| self.accounts.contains(&number.number()))
+                        .unwrap_or_default();
+
+                    if !account_exists {
+                        break;
+                    }
+
+                    balance += transcribe_amount(*amount);
+                }
+
+                match (account_exists, balance) {
+                    (false, _) => Err(JournalError::InvalidTransaction),
+                    (_, sum) if sum != 0 => Err(JournalError::ImbalancedTranasactions),
+                    _ => Ok(()),
+                }
             })
             .and_then(|()| next_id(self.current_id))
             .map(|id| make_journal(id, description.into(), &transactions, date))
