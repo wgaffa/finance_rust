@@ -84,6 +84,22 @@ where
         });
         self.send_reply(reply_channel, entry).await;
     }
+
+    async fn process_close_account(
+        &mut self,
+        id: Number,
+        reply_channel: Responder<(), AccountError>,
+    ) {
+        let events = self.store_handle.all();
+        let mut chart = cqrs::Chart::new(&events);
+
+        let reply = chart.close(id).and_then(|events| {
+            self.store_handle.extend(events.iter().cloned());
+            Ok(())
+        });
+
+        self.send_reply(reply_channel, reply).await;
+    }
 }
 
 #[async_trait]
@@ -111,6 +127,10 @@ where
                 self.process_journal_entry_message(description, transactions, date, reply_channel)
                     .await
             }
+            Message::CloseAccount {
+                id,
+                reply_channel,
+            } => self.process_close_account(id, reply_channel).await,
         }
     }
 }

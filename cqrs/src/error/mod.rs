@@ -3,12 +3,14 @@ use std::fmt;
 #[derive(Debug, PartialEq, Eq)]
 pub enum AccountError {
     AccountAlreadyOpened(u32),
+    AccountAlreadyClosed,
 }
 
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::AccountAlreadyOpened(id) => write!(f, "Account '{id}' has already been opened"),
+            Self::AccountAlreadyClosed => f.write_str("Account has already been closed"),
         }
     }
 }
@@ -35,7 +37,6 @@ impl fmt::Display for JournalError {
             Self::EmptyTransaction => f.write_str("A journal must have atleast one transaction"),
             Self::NoJournalEvent => f.write_str("No journal event in the stream"),
             Self::InvalidTransaction => f.write_str("The transaction was not valid"),
-            _ => f.write_str("Unrecognized error variant"),
         }
     }
 }

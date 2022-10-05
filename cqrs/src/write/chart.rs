@@ -52,6 +52,27 @@ impl Chart {
             .ok_or_else(|| AccountError::AccountAlreadyOpened(number.number()))
     }
 
+    pub fn close(&mut self, number: Number) -> Result<&[Event], AccountError> {
+        let account_exists = self.data.contains(&number.number());
+        account_exists
+            .then_some(())
+            .map(|()| {
+                vec![Event::AccountClosed(number)]
+            })
+            .map(|issued_events| {
+                let len = issued_events.len();
+                self.apply(&issued_events);
+                self.history.extend(issued_events);
+
+                len
+            })
+            .map(|len| {
+                let index = self.history.len().checked_sub(len).unwrap_or_default();
+                &self.history[index..]
+            })
+            .ok_or(AccountError::AccountAlreadyClosed)
+    }
+
     fn apply(&mut self, events: &[Event]) {
         for event in events {
             match event {

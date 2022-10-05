@@ -23,4 +23,8 @@ pub enum Message {
         date: Date<Utc>,
         reply_channel: Responder<JournalId, cqrs::error::JournalError>,
     },
+    CloseAccount {
+        id: Number,
+        reply_channel: Responder<(), cqrs::error::AccountError>,
+    }
 }

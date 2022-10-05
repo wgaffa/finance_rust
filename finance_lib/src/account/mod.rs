@@ -31,6 +31,14 @@ impl From<NonZeroU32> for Number {
     }
 }
 
+impl TryFrom<u32> for Number {
+    type Error = std::num::TryFromIntError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Ok(Self(NonZeroU32::try_from(value)?))
+    }
+}
+
 impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.get())

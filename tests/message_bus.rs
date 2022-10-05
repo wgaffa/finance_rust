@@ -1,3 +1,5 @@
+use std::{convert::TryInto, fmt::Debug};
+
 use chrono::prelude::*;
 use tokio::{sync, task};
 
@@ -185,4 +187,37 @@ async fn adding_no_transactions_to_an_entry_should_give_an_error() {
 
     let response = rx.await.unwrap();
     assert_eq!(response, Err(JournalError::EmptyTransaction))
+}
+
+fn close_account<T>(id: T, tx: sync::oneshot::Sender<Result<(), AccountError>>) -> Message
+where
+    T: TryInto<Number>,
+    <T as TryInto<Number>>::Error: Debug,
+{
+    Message::CloseAccount {
+        id: id.try_into().unwrap(),
+        reply_channel: Some(tx),
+    }
+}
+
+#[tokio::test]
+async fn closing_an_account_twice_should_give_an_error() {
+    let mb = default_mailbox().await;
+    add_default_account(&mb).await;
+
+    let (tx, mut rx) = sync::oneshot::channel();
+    let result = mb.post(close_account(101, tx)).await;
+
+    assert!(result.is_ok());
+
+    let response = rx.await.unwrap();
+    assert_eq!(response, Ok(()));
+
+    let (tx, mut rx) = sync::oneshot::channel();
+    let result = mb.post(close_account(101, tx)).await;
+
+    assert!(result.is_ok());
+
+    let response = rx.await.unwrap();
+    assert_eq!(response, Err(AccountError::AccountAlreadyClosed));
 }
