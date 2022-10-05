@@ -38,17 +38,7 @@ impl Chart {
                     category,
                 }]
             })
-            .map(|issued_events| {
-                let len = issued_events.len();
-                self.apply(&issued_events);
-                self.history.extend(issued_events);
-
-                len
-            })
-            .map(|len| {
-                let index = self.history.len().checked_sub(len).unwrap_or_default();
-                &self.history[index..]
-            })
+            .map(|issued_events| self.apply_new_events(issued_events))
             .ok_or_else(|| AccountError::AccountAlreadyOpened(number.number()))
     }
 
@@ -56,20 +46,8 @@ impl Chart {
         let account_exists = self.data.contains(&number.number());
         account_exists
             .then_some(())
-            .map(|()| {
-                vec![Event::AccountClosed(number)]
-            })
-            .map(|issued_events| {
-                let len = issued_events.len();
-                self.apply(&issued_events);
-                self.history.extend(issued_events);
-
-                len
-            })
-            .map(|len| {
-                let index = self.history.len().checked_sub(len).unwrap_or_default();
-                &self.history[index..]
-            })
+            .map(|()| vec![Event::AccountClosed(number)])
+            .map(|issued_events| self.apply_new_events(issued_events))
             .ok_or(AccountError::AccountAlreadyClosed)
     }
 
@@ -85,5 +63,14 @@ impl Chart {
                 _ => {}
             }
         }
+    }
+
+    fn apply_new_events(&mut self, events: Vec<Event>) -> &[Event] {
+        let len = events.len();
+        self.apply(&events);
+        self.history.extend(events);
+
+        let index = self.history.len().checked_sub(len).unwrap_or_default();
+        &self.history[index..]
     }
 }
