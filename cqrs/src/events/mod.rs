@@ -1,4 +1,4 @@
-use super::{AccountId, JournalId};
+use super::JournalId;
 use chrono::prelude::*;
 use personal_finance::{
     account::{Category, Name, Number},

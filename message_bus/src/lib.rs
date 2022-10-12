@@ -1,11 +1,7 @@
 use async_trait::async_trait;
-use cqrs::{events::store::InMemoryStore, Event};
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio::{
-    sync::{
-        self,
-        mpsc::{self, Sender},
-    },
+    sync::mpsc::{self, Sender},
     task,
 };
 
@@ -64,7 +60,7 @@ impl MailboxProcessor {
         self.sender
             .send(message)
             .await
-            .report()
+            .into_report()
             .change_context(MailboxProcessorError::MailboxProcessTerminated)
     }
 }

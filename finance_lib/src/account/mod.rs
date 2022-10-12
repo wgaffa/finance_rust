@@ -11,7 +11,7 @@ pub struct Number(NonZeroU32);
 impl Number {
     /// Create a new [Number] with a positive integer
     pub fn new(value: u32) -> Option<Self> {
-        NonZeroU32::new(value).map(|v| Self(v))
+        NonZeroU32::new(value).map(Self)
     }
 
     pub fn number(&self) -> u32 {

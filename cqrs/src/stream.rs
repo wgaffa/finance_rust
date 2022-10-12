@@ -28,7 +28,7 @@ impl FromStr for Stream {
             .split('.')
             .map(|x| {
                 x.parse::<Identifier>()
-                    .report()
+                    .into_report()
                     .attach_printable(x.to_owned())
             })
             .collect::<Result<Vec<_>, Report<identifier::ParseError>>>() // This only gets the first Err variant

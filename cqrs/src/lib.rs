@@ -1,5 +1,3 @@
-use std::{collections::HashSet, ops::Neg};
-
 use error::{AccountError, JournalError};
 pub use events::Event;
 pub use personal_finance::{

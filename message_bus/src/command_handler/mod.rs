@@ -1,28 +1,16 @@
 use async_trait::async_trait;
 use chrono::prelude::*;
 use futures::future::OptionFuture;
-use tokio::{
-    sync::{
-        self,
-        mpsc::{self, Sender},
-        oneshot,
-    },
-    task,
-};
 
 use crate::{message::Responder, Message, MessageProcessor};
 use cqrs::{
     error::{AccountError, JournalError},
     events::store::EventStorage,
-    AccountId,
     Balance,
     Event,
     JournalId,
 };
-use personal_finance::{
-    account::{Category, Name, Number},
-    entry::Journal,
-};
+use personal_finance::account::{Category, Name, Number};
 
 pub struct CommandHandler<T> {
     store_handle: T,
@@ -52,8 +40,8 @@ where
         category: Category,
         reply_channel: Responder<(), AccountError>,
     ) {
-        let mut events = self.store_handle.all();
-        let mut chart = cqrs::Chart::new(&events);
+        let events = self.store_handle.all();
+        let mut chart = cqrs::Chart::new(events);
         let entry = chart.open(id, description, category);
 
         let entry = entry.map(|events| self.store_handle.extend(events.iter().cloned()));
@@ -68,7 +56,7 @@ where
         reply_channel: Responder<JournalId, JournalError>,
     ) {
         let events = self.store_handle.all();
-        let mut journal = cqrs::Journal::new(&events);
+        let mut journal = cqrs::Journal::new(events);
         let entry = journal.entry(description, &transactions, date);
 
         let entry = entry.and_then(|events| {
@@ -91,11 +79,10 @@ where
         reply_channel: Responder<(), AccountError>,
     ) {
         let events = self.store_handle.all();
-        let mut chart = cqrs::Chart::new(&events);
+        let mut chart = cqrs::Chart::new(events);
 
-        let reply = chart.close(id).and_then(|events| {
+        let reply = chart.close(id).map(|events| {
             self.store_handle.extend(events.iter().cloned());
-            Ok(())
         });
 
         self.send_reply(reply_channel, reply).await;

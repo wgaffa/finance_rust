@@ -27,7 +27,7 @@ fn make_journal(
 ) -> Vec<Event> {
     let mut v = vec![Event::Journal {
         id,
-        description: description.into(),
+        description,
         date,
     }];
     v.extend(
@@ -95,7 +95,7 @@ impl Journal {
                 }
             })
             .and_then(|()| next_id(self.current_id))
-            .map(|id| make_journal(id, description.into(), &transactions, date))
+            .map(|id| make_journal(id, description.into(), transactions, date))
             .map(|events| {
                 self.apply(&events);
                 let len = self.history.len();
