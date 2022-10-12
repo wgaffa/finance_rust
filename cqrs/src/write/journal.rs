@@ -62,6 +62,28 @@ impl Journal {
         journal
     }
 
+    fn check_balance(&self, transactions: &[(Number, Balance)]) -> Result<(), JournalError> {
+        let mut account_exists = true;
+        let mut balance = 0;
+        for (number, amount) in transactions.iter() {
+            account_exists = account_exists
+                .then(|| self.accounts.contains(&number))
+                .unwrap_or_default();
+
+            if !account_exists {
+                break;
+            }
+
+            balance += transcribe_amount(*amount);
+        }
+
+        match (account_exists, balance) {
+            (false, _) => Err(JournalError::InvalidTransaction),
+            (_, sum) if sum != 0 => Err(JournalError::ImbalancedTranasactions),
+            _ => Ok(()),
+        }
+    }
+
     pub fn entry<T: Into<String>>(
         &mut self,
         description: T,
@@ -73,27 +95,7 @@ impl Journal {
             .gt(&0)
             .then_some(())
             .ok_or(JournalError::EmptyTransaction)
-            .and_then(|()| {
-                let mut account_exists = true;
-                let mut balance = 0;
-                for (number, amount) in transactions.iter() {
-                    account_exists = account_exists
-                        .then(|| self.accounts.contains(&number))
-                        .unwrap_or_default();
-
-                    if !account_exists {
-                        break;
-                    }
-
-                    balance += transcribe_amount(*amount);
-                }
-
-                match (account_exists, balance) {
-                    (false, _) => Err(JournalError::InvalidTransaction),
-                    (_, sum) if sum != 0 => Err(JournalError::ImbalancedTranasactions),
-                    _ => Ok(()),
-                }
-            })
+            .and_then(|()| self.check_balance(transactions))
             .and_then(|()| next_id(self.current_id))
             .map(|id| make_journal(id, description.into(), transactions, date))
             .map(|events| {
