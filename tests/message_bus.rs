@@ -172,3 +172,13 @@ async fn closing_an_account_twice_should_give_an_error() {
     let response = rx.await.unwrap();
     assert_eq!(response, Err(AccountError::AccountAlreadyClosed));
 }
+
+#[tokio::test]
+async fn closing_a_non_existent_account_should_give_an_error() {
+    let mb = default_mailbox().await;
+
+    let (tx, mut rx) = sync::oneshot::channel();
+    let result = post_message!(close mb, 101, Some(tx));
+    let response = rx.await.unwrap();
+    assert_eq!(response, Err(AccountError::AccountAlreadyClosed));
+}
