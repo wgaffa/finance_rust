@@ -2,11 +2,11 @@ use std::collections::HashSet;
 
 use personal_finance::account::{Category, Name, Number};
 
-use crate::{AccountError, AccountId, Event};
+use crate::{AccountError, Event};
 
 #[derive(Default)]
 pub struct Chart {
-    data: HashSet<AccountId>,
+    data: HashSet<Number>,
     history: Vec<Event>,
 }
 
@@ -28,7 +28,7 @@ impl Chart {
         name: Name,
         category: Category,
     ) -> Result<&[Event], AccountError> {
-        let account_doesnt_exist = !self.data.contains(&number.number());
+        let account_doesnt_exist = !self.data.contains(&number);
         account_doesnt_exist
             .then_some(())
             .map(|()| {
@@ -43,7 +43,7 @@ impl Chart {
     }
 
     pub fn close(&mut self, number: Number) -> Result<&[Event], AccountError> {
-        let account_exists = self.data.contains(&number.number());
+        let account_exists = self.data.contains(&number);
         account_exists
             .then_some(())
             .map(|()| vec![Event::AccountClosed(number)])
@@ -55,10 +55,10 @@ impl Chart {
         for event in events {
             match event {
                 Event::AccountOpened { id, .. } => {
-                    self.data.insert(id.number());
+                    self.data.insert(*id);
                 }
                 Event::AccountClosed(id) => {
-                    self.data.remove(&id.number());
+                    self.data.remove(id);
                 }
                 _ => {}
             }

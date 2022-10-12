@@ -15,4 +15,3 @@ pub use write::chart::Chart;
 pub use write::journal::Journal;
 
 pub type JournalId = u32;
-pub type AccountId = u32;

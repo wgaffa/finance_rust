@@ -3,12 +3,12 @@ use std::{collections::HashSet, ops::Neg};
 use chrono::prelude::*;
 use personal_finance::account::Number;
 
-use crate::{AccountId, Balance, Event, JournalError, JournalId};
+use crate::{Balance, Event, JournalError, JournalId};
 
 #[derive(Default)]
 pub struct Journal {
     current_id: JournalId,
-    accounts: HashSet<AccountId>,
+    accounts: HashSet<Number>,
     history: Vec<Event>,
 }
 
@@ -78,7 +78,7 @@ impl Journal {
                 let mut balance = 0;
                 for (number, amount) in transactions.iter() {
                     account_exists = account_exists
-                        .then(|| self.accounts.contains(&number.number()))
+                        .then(|| self.accounts.contains(&number))
                         .unwrap_or_default();
 
                     if !account_exists {
@@ -109,10 +109,10 @@ impl Journal {
         for event in events {
             match event {
                 Event::AccountOpened { id, .. } => {
-                    self.accounts.insert(id.number());
+                    self.accounts.insert(*id);
                 }
                 Event::AccountClosed(id) => {
-                    self.accounts.remove(&id.number());
+                    self.accounts.remove(id);
                 }
                 Event::Journal { id, .. } => self.current_id = self.current_id.max(*id),
                 _ => {}

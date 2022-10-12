@@ -5,7 +5,7 @@ mod category;
 pub use category::Category;
 
 /// An account number to identify an account.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Number(NonZeroU32);
 
 impl Number {
