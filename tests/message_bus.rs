@@ -18,19 +18,18 @@ async fn default_mailbox() -> MailboxProcessor {
     MailboxProcessor::new(handler).await
 }
 
-macro_rules! post_message {
-    (open $t:ident , $id:expr, $desc:expr, $cat:expr, $rc:expr) => {
-        $t.post(Message::CreateAccount {
+macro_rules! message {
+    (open, $id:expr, $desc:expr, $cat:expr, $rc:expr) => {
+        Message::CreateAccount {
             id: Number::new($id).unwrap(),
             description: Name::new($desc).unwrap(),
             category: $cat,
             reply_channel: $rc,
-        })
-        .await
+        }
     };
 
-    (entry $t:ident , $desc:expr, $date:expr, $rc:expr => { $($account:expr => $ty:ident $amount:expr),* $(,)? }) => {
-        $t.post(Message::JournalEntry {
+    (entry, $desc:expr, $date:expr => { $($account:expr => $ty:ident $amount:expr),* $(,)? }, $rc:expr) => {
+        Message::JournalEntry {
             description: String::from($desc),
             transactions: vec![
                 $(
@@ -39,12 +38,21 @@ macro_rules! post_message {
             ],
             date: $date,
             reply_channel: $rc,
-        })
-        .await
+        }
     };
 
-    (close $t:ident , $acc:expr, $rc:expr) => {
-        $t.post(Message::CloseAccount { id: Number::new($acc).unwrap(), reply_channel: $rc }).await
+    (close, $acc:expr, $rc:expr) => {
+        Message::CloseAccount { id: Number::new($acc).unwrap(), reply_channel: $rc }
+    };
+}
+
+macro_rules! message_with_reply {
+    ($($tt:tt)*) => {
+        {
+            let (tx, rx) = sync::oneshot::channel();
+            let m = message!($($tt)* , Some(tx));
+            (m, rx)
+        }
     };
 }
 
@@ -52,8 +60,8 @@ macro_rules! post_message {
 async fn create_account() {
     let mb = default_mailbox().await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(open mb, 101, "Bank account", Category::Asset, Some(tx));
+    let (message, mut rx) = message_with_reply!(open, 101, "Bank account", Category::Asset);
+    let result = mb.post(message).await;
 
     let response = rx.await.unwrap();
 
@@ -65,17 +73,16 @@ async fn create_account() {
 async fn create_duplicate_account() {
     let mb = default_mailbox().await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-
-    let result = post_message!(open mb, 101, "Bank account", Category::Asset, Some(tx));
+    let (message, mut rx) = message_with_reply!(open, 101, "Bank account", Category::Asset);
+    let result = mb.post(message).await;
 
     let response = rx.await.unwrap();
 
     assert!(result.is_ok());
     assert!(response.is_ok());
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(open mb, 101, "Duplicate account", Category::Asset, Some(tx) );
+    let (message, mut rx) = message_with_reply!(open, 101, "Duplicate account", Category::Asset);
+    let result = mb.post(message).await;
 
     let response = rx.await.unwrap();
 
@@ -84,9 +91,9 @@ async fn create_duplicate_account() {
 }
 
 async fn add_default_account(mb: &MailboxProcessor) {
-    let _ = post_message!(open mb, 101, "Bank account", Category::Asset, None );
-    let _ = post_message!(open mb, 501, "Groceries", Category::Expenses, None );
-    let _ = post_message!(open mb, 401, "Salary", Category::Income, None );
+    let _ = mb.post(message!(open, 101, "Bank account", Category::Asset, None)).await;
+    let _ = mb.post(message!(open, 501, "Groceries", Category::Expenses, None)).await;
+    let _ = mb.post(message!(open, 401, "Salary", Category::Income, None)).await;
 }
 
 #[tokio::test]
@@ -94,11 +101,11 @@ async fn create_journal() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(entry mb, "Grocery shopping", Utc::now().date(), Some(tx) => {
+    let (message, mut rx) = message_with_reply!(entry, "Grocery Shopping", Utc::now().date() => {
         101 => credit 150,
         501 => debit 150,
     });
+    let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
@@ -106,11 +113,11 @@ async fn create_journal() {
 
     assert_eq!(result, Ok(1));
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(entry mb, "Salary", Utc::now().date(), Some(tx) => {
+    let (message, mut rx) = message_with_reply!(entry, "Salary", Utc::now().date() => {
         101 => debit 10_000,
         401 => credit 10_000,
     });
+    let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
@@ -123,11 +130,11 @@ async fn adding_a_transaction_to_a_non_existing_account_should_be_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(entry mb, "Grocery shopping", Utc::now().date(), Some(tx) => {
+    let (message, mut rx) = message_with_reply!(entry, "Grocery shopping", Utc::now().date() => {
         101 => credit 150,
         601 => debit 150,
     });
+    let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
@@ -140,10 +147,10 @@ async fn adding_no_transactions_to_an_entry_should_give_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(entry mb, "Grocery shopping", Utc::now().date(), Some(tx) => {
+    let (message, mut rx) = message_with_reply!(entry, "Grocery shopping", Utc::now().date() => {
         // empty transactions
     });
+    let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
@@ -156,16 +163,16 @@ async fn closing_an_account_twice_should_give_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(close mb, 101, Some(tx));
+    let (message, mut rx) = message_with_reply!(close, 101);
+    let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
     let response = rx.await.unwrap();
     assert_eq!(response, Ok(()));
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(close mb, 101, Some(tx));
+    let (message, mut rx) = message_with_reply!(close, 101);
+    let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
@@ -177,8 +184,8 @@ async fn closing_an_account_twice_should_give_an_error() {
 async fn closing_a_non_existent_account_should_give_an_error() {
     let mb = default_mailbox().await;
 
-    let (tx, mut rx) = sync::oneshot::channel();
-    let result = post_message!(close mb, 101, Some(tx));
+    let (message, mut rx) = message_with_reply!(close, 101);
+    let result = mb.post(message).await;
     let response = rx.await.unwrap();
     assert_eq!(response, Err(AccountError::AccountAlreadyClosed));
 }
