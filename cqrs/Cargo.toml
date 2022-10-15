@@ -9,6 +9,7 @@ edition = "2021"
 chrono = "0.4.22"
 error-stack = "0.2.1"
 personal_finance = { version = "0.1.0", path = "../finance_lib" }
+thiserror = "1.0.37"
 
 [dev-dependencies]
 quickcheck = "1.0.3"

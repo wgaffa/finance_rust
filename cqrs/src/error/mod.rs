@@ -1,21 +1,16 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Eq)]
+use thiserror::Error;
+
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum AccountError {
-    AccountAlreadyOpened(u32),
-    AccountAlreadyClosed,
+    #[error("Account '{0}' has already been opened.")]
+    Opened(u32),
+    #[error("Account has already been closed.")]
+    Closed,
+    #[error("Account already exists.")]
+    Exists,
 }
-
-impl fmt::Display for AccountError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::AccountAlreadyOpened(id) => write!(f, "Account '{id}' has already been opened"),
-            Self::AccountAlreadyClosed => f.write_str("Account has already been closed"),
-        }
-    }
-}
-
-impl std::error::Error for AccountError {}
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Eq)]

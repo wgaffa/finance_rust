@@ -87,7 +87,27 @@ async fn create_duplicate_account() {
     let response = rx.await.unwrap();
 
     assert!(result.is_ok());
-    assert_eq!(response, Err(AccountError::AccountAlreadyOpened(101)));
+    assert_eq!(response, Err(AccountError::Opened(101)));
+}
+
+#[tokio::test]
+async fn opening_an_already_closed_account_should_be_an_error() {
+    let mut mb = default_mailbox().await;
+    add_default_account(&mb).await;
+
+    let message = message!(close, 101, None);
+    let result = mb.post(message).await;
+
+    assert!(result.is_ok());
+
+    let (message, mut rx) = message_with_reply!(open, 101, "New account", Category::Equity);
+    let result = mb.post(message).await;
+    assert!(result.is_ok());
+
+    let response = rx.await.unwrap();
+    dbg!(&response);
+    assert!(response.is_err());
+    assert_eq!(response, Err(AccountError::Exists));
 }
 
 async fn add_default_account(mb: &MailboxProcessor) {
@@ -177,7 +197,7 @@ async fn closing_an_account_twice_should_give_an_error() {
     assert!(result.is_ok());
 
     let response = rx.await.unwrap();
-    assert_eq!(response, Err(AccountError::AccountAlreadyClosed));
+    assert_eq!(response, Err(AccountError::Closed));
 }
 
 #[tokio::test]
@@ -187,5 +207,5 @@ async fn closing_a_non_existent_account_should_give_an_error() {
     let (message, mut rx) = message_with_reply!(close, 101);
     let result = mb.post(message).await;
     let response = rx.await.unwrap();
-    assert_eq!(response, Err(AccountError::AccountAlreadyClosed));
+    assert_eq!(response, Err(AccountError::Closed));
 }

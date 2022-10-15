@@ -1,12 +1,13 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use personal_finance::account::{Category, Name, Number};
 
 use crate::{AccountError, Event};
 
+type IsOpen = bool;
 #[derive(Default)]
 pub struct Chart {
-    data: HashSet<Number>,
+    data: HashMap<Number, IsOpen>,
     history: Vec<Event>,
 }
 
@@ -28,9 +29,16 @@ impl Chart {
         name: Name,
         category: Category,
     ) -> Result<&[Event], AccountError> {
-        let account_doesnt_exist = !self.data.contains(&number);
+        let account_doesnt_exist = !self.data.contains_key(&number);
         account_doesnt_exist
             .then_some(())
+            .ok_or_else(|| {
+                if *self.data.get(&number).unwrap() {
+                    AccountError::Opened(number.number())
+                } else {
+                    AccountError::Exists
+                }
+            })
             .map(|()| {
                 vec![Event::AccountOpened {
                     id: number,
@@ -39,26 +47,25 @@ impl Chart {
                 }]
             })
             .map(|issued_events| self.apply_new_events(issued_events))
-            .ok_or_else(|| AccountError::AccountAlreadyOpened(number.number()))
     }
 
     pub fn close(&mut self, number: Number) -> Result<&[Event], AccountError> {
-        let account_exists = self.data.contains(&number);
-        account_exists
+        let account_exists_and_opened = self.data.get(&number).copied().unwrap_or_default();
+        account_exists_and_opened
             .then_some(())
             .map(|()| vec![Event::AccountClosed(number)])
             .map(|issued_events| self.apply_new_events(issued_events))
-            .ok_or(AccountError::AccountAlreadyClosed)
+            .ok_or(AccountError::Closed)
     }
 
     fn apply(&mut self, events: &[Event]) {
         for event in events {
             match event {
                 Event::AccountOpened { id, .. } => {
-                    self.data.insert(*id);
+                    self.data.insert(*id, true);
                 }
                 Event::AccountClosed(id) => {
-                    self.data.remove(id);
+                    self.data.entry(*id).and_modify(|x| *x = false);
                 }
                 _ => {}
             }

@@ -97,6 +97,7 @@ dependencies = [
  "quickcheck",
  "quickcheck_macros",
  "test-case 2.2.2",
+ "thiserror",
 ]
 
 [[package]]
@@ -329,6 +330,7 @@ dependencies = [
  "error-stack 0.2.1",
  "futures",
  "personal_finance",
+ "thiserror",
  "tokio",
 ]
 
