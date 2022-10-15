@@ -8,8 +8,8 @@ pub enum AccountError {
     Opened(u32),
     #[error("Account has already been closed.")]
     Closed,
-    #[error("Account already exists.")]
-    Exists,
+    #[error("Account doesn't exist.")]
+    NotExist,
 }
 
 #[non_exhaustive]
