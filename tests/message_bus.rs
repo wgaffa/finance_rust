@@ -117,7 +117,7 @@ async fn add_default_account(mb: &MailboxProcessor) {
 }
 
 #[tokio::test]
-async fn create_journal() {
+async fn creating_an_entry_should_increase_its_id_counter() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 

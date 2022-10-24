@@ -330,7 +330,7 @@ mod test {
     {
         let account = Account {
             name: account::Name::new(String::from("Test")).unwrap(),
-            number: account::Number::new(54),
+            number: account::Number::new(54).unwrap(),
             category: Category::Asset,
         };
 
@@ -357,7 +357,7 @@ mod test {
     {
         let account = Account {
             name: account::Name::new(String::from("Test")).unwrap(),
-            number: account::Number::new(54),
+            number: account::Number::new(54).unwrap(),
             category: Category::Asset,
         };
 
@@ -382,12 +382,12 @@ mod test {
         let mut chart = Chart::new();
 
         chart.insert(Account::new(
-            101,
+            account::Number::new(101).unwrap(),
             account::Name::new("Test").unwrap(),
             Category::Expenses,
         ));
         chart.insert(Account::new(
-            101,
+            account::Number::new(101).unwrap(),
             account::Name::new("Duplicate number").unwrap(),
             Category::Asset,
         ));
@@ -400,17 +400,17 @@ mod test {
         let mut chart = Chart::new();
 
         chart.insert(Account::new(
-            101,
+            account::Number::new(101).unwrap(),
             account::Name::new("Test").unwrap(),
             Category::Expenses,
         ));
         let actual = chart.insert(Account::new(
-            101,
+            account::Number::new(101).unwrap(),
             account::Name::new("Duplicate number").unwrap(),
             Category::Asset,
         ));
 
-        let expected = Account::new(101, account::Name::new("Test").unwrap(), Category::Expenses);
+        let expected = Account::new(account::Number::new(101).unwrap(), account::Name::new("Test").unwrap(), Category::Expenses);
 
         assert_eq!(actual, Some(expected));
     }
@@ -420,7 +420,7 @@ mod test {
         let mut chart = Chart::new();
 
         let actual = chart.insert(Account::new(
-            101,
+            account::Number::new(101).unwrap(),
             account::Name::new("Test").unwrap(),
             Category::Income,
         ));
@@ -442,7 +442,7 @@ mod test {
         let mut chart = Chart::new();
 
         let account = Account::new(
-            601,
+            account::Number::new(601).unwrap(),
             account::Name::new(String::from("Grocery")).unwrap(),
             Category::Expenses,
         );
@@ -462,28 +462,28 @@ mod test {
 
         let mut accounts = vec![
             Account::new(
-                201,
+                account::Number::new(201).unwrap(),
                 account::Name::new("Credit Loan").unwrap(),
                 Category::Liability,
             ),
-            Account::new(401, account::Name::new("Salary").unwrap(), Category::Income),
+            Account::new(account::Number::new(401).unwrap(), account::Name::new("Salary").unwrap(), Category::Income),
             Account::new(
-                502,
+                account::Number::new(502).unwrap(),
                 account::Name::new("Phone").unwrap(),
                 Category::Expenses,
             ),
             Account::new(
-                501,
+                account::Number::new(501).unwrap(),
                 account::Name::new("Internet").unwrap(),
                 Category::Expenses,
             ),
             Account::new(
-                202,
+                account::Number::new(202).unwrap(),
                 account::Name::new("Bank Loan").unwrap(),
                 Category::Liability,
             ),
             Account::new(
-                101,
+                account::Number::new(101).unwrap(),
                 account::Name::new("Bank Account").unwrap(),
                 Category::Asset,
             ),
