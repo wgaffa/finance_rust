@@ -107,7 +107,7 @@ async fn opening_an_already_closed_account_should_be_an_error() {
     let response = rx.await.unwrap();
     dbg!(&response);
     assert!(response.is_err());
-    assert_eq!(response, Err(AccountError::Exists));
+    assert_eq!(response, Err(AccountError::NotExist));
 }
 
 async fn add_default_account(mb: &MailboxProcessor) {

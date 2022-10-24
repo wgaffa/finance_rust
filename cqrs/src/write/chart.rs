@@ -36,7 +36,7 @@ impl Chart {
                 if *self.data.get(&number).unwrap() {
                     AccountError::Opened(number.number())
                 } else {
-                    AccountError::Exists
+                    AccountError::NotExist
                 }
             })
             .map(|()| {
