@@ -90,26 +90,6 @@ async fn create_duplicate_account() {
     assert_eq!(response, Err(AccountError::Opened(101)));
 }
 
-#[tokio::test]
-async fn opening_an_already_closed_account_should_be_an_error() {
-    let mut mb = default_mailbox().await;
-    add_default_account(&mb).await;
-
-    let message = message!(close, 101, None);
-    let result = mb.post(message).await;
-
-    assert!(result.is_ok());
-
-    let (message, mut rx) = message_with_reply!(open, 101, "New account", Category::Equity);
-    let result = mb.post(message).await;
-    assert!(result.is_ok());
-
-    let response = rx.await.unwrap();
-    dbg!(&response);
-    assert!(response.is_err());
-    assert_eq!(response, Err(AccountError::NotExist));
-}
-
 async fn add_default_account(mb: &MailboxProcessor) {
     let _ = mb.post(message!(open, 101, "Bank account", Category::Asset, None)).await;
     let _ = mb.post(message!(open, 501, "Groceries", Category::Expenses, None)).await;

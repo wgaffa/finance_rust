@@ -13,5 +13,6 @@ pub mod write;
 
 pub use write::chart::Chart;
 pub use write::journal::Journal;
+pub use write::ledger::Ledger;
 
 pub type JournalId = u32;

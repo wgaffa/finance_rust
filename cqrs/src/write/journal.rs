@@ -5,6 +5,8 @@ use personal_finance::account::Number;
 
 use crate::{Balance, Event, JournalError, JournalId};
 
+use super::ledger::LedgerId;
+
 #[derive(Default)]
 pub struct Journal {
     current_id: JournalId,
@@ -26,6 +28,7 @@ fn make_journal(
     date: Date<Utc>,
 ) -> Vec<Event> {
     let mut v = vec![Event::Journal {
+        ledger: LedgerId::new("Bogus").unwrap(),
         id,
         description,
         date,
@@ -34,6 +37,7 @@ fn make_journal(
         transactions
             .iter()
             .map(|(account, amount)| Event::Transaction {
+                ledger: LedgerId::new("Bogus").unwrap(),
                 account: *account,
                 amount: *amount,
                 journal: id,
@@ -113,7 +117,7 @@ impl Journal {
                 Event::AccountOpened { id, .. } => {
                     self.accounts.insert(*id);
                 }
-                Event::AccountClosed(id) => {
+                Event::AccountClosed{ account: id, .. } => {
                     self.accounts.remove(id);
                 }
                 Event::Journal { id, .. } => self.current_id = self.current_id.max(*id),

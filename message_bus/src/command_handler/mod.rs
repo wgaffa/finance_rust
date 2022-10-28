@@ -8,7 +8,7 @@ use cqrs::{
     events::store::EventStorage,
     Balance,
     Event,
-    JournalId,
+    JournalId, write::ledger::LedgerId,
 };
 use personal_finance::account::{Category, Name, Number};
 
@@ -41,8 +41,8 @@ where
         reply_channel: Responder<(), AccountError>,
     ) {
         let events = self.store_handle.all();
-        let mut chart = cqrs::Chart::new(events);
-        let entry = chart.open(id, description, category);
+        let mut ledger = cqrs::Ledger::new(LedgerId::new("2014-q2").unwrap(), events);
+        let entry = ledger.open_account(id, description, category);
 
         let entry = entry.map(|events| self.store_handle.extend(events.iter().cloned()));
         self.send_reply(reply_channel, entry).await;
