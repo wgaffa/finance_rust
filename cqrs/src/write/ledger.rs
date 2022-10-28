@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Not};
 
 use personal_finance::account::{Number, Name, Category};
 
@@ -48,17 +48,11 @@ impl Ledger {
     }
 
     pub fn open_account(&mut self, number: Number, name: Name, category: Category) -> Result<&[Event], AccountError> {
-        let account_doesnt_exist = !self.chart.contains(&number);
-        account_doesnt_exist
+        self.chart.contains(&number)
+            .not()
             .then_some(())
-            .ok_or_else(|| {
-                if let Some (number) = self.chart.get(&number) {
-                    AccountError::Opened(number.number())
-                } else {
-                    AccountError::NotExist
-                }
-            })
-            .map(|()| {
+            .ok_or(AccountError::Opened(number.number()))
+            .map(|_| {
                 vec![Event::AccountOpened {
                     ledger: self.id.clone(),
                     id: number,
