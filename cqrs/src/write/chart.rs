@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use personal_finance::account::{Category, Name, Number};
 
-use crate::{AccountError, Event};
+use crate::{AccountError, Event, events::EventPointer};
 
 use super::ledger::LedgerId;
 
@@ -10,11 +10,11 @@ type IsOpen = bool;
 #[derive(Default)]
 pub struct Chart {
     data: HashMap<Number, IsOpen>,
-    history: Vec<Event>,
+    history: Vec<EventPointer>,
 }
 
 impl Chart {
-    pub fn new(history: &[Event]) -> Self {
+    pub fn new(history: &[EventPointer]) -> Self {
         let mut chart = Self {
             data: Default::default(),
             history: history.to_vec(),
@@ -30,7 +30,7 @@ impl Chart {
         number: Number,
         name: Name,
         category: Category,
-    ) -> Result<&[Event], AccountError> {
+    ) -> Result<&[EventPointer], AccountError> {
         let account_doesnt_exist = !self.data.contains_key(&number);
         account_doesnt_exist
             .then_some(())
@@ -42,33 +42,33 @@ impl Chart {
                 }
             })
             .map(|()| {
-                vec![Event::AccountOpened {
+                vec![Arc::new(Event::AccountOpened {
                     ledger: LedgerId::new("Bogus").unwrap(),
                     id: number,
                     name,
                     category,
-                }]
+                })]
             })
             .map(|issued_events| self.apply_new_events(issued_events))
     }
 
-    pub fn close(&mut self, number: Number) -> Result<&[Event], AccountError> {
+    pub fn close(&mut self, number: Number) -> Result<&[EventPointer], AccountError> {
         let account_exists_and_opened = self.data.get(&number).copied().unwrap_or_default();
         account_exists_and_opened
             .then_some(())
             .map(|()| {
-                vec![Event::AccountClosed {
+                vec![Arc::new(Event::AccountClosed {
                     ledger: LedgerId::new("Bogus").unwrap(),
                     account: number,
-                }]
+                })]
             })
             .map(|issued_events| self.apply_new_events(issued_events))
             .ok_or(AccountError::Closed)
     }
 
-    fn apply(&mut self, events: &[Event]) {
+    fn apply(&mut self, events: &[EventPointer]) {
         for event in events {
-            match event {
+            match event.deref() {
                 Event::AccountOpened { id, .. } => {
                     self.data.insert(*id, true);
                 }
@@ -80,7 +80,7 @@ impl Chart {
         }
     }
 
-    fn apply_new_events(&mut self, events: Vec<Event>) -> &[Event] {
+    fn apply_new_events(&mut self, events: Vec<EventPointer>) -> &[EventPointer] {
         let len = events.len();
         self.apply(&events);
         self.history.extend(events);

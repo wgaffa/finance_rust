@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::JournalId;
 use crate::write::ledger::LedgerId;
 use chrono::prelude::*;
@@ -8,6 +10,8 @@ use personal_finance::{
 
 pub mod projections;
 pub mod store;
+
+pub type EventPointer = Arc<Event>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Event {

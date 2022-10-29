@@ -1,4 +1,4 @@
-use std::ops::Not;
+use std::{ops::Deref, sync::Arc};
 
 use async_trait::async_trait;
 use chrono::prelude::*;
@@ -82,10 +82,11 @@ where
         reply_channel: Responder<(), AccountError>,
     ) {
         let events = self.store_handle.all();
-        let mut chart = cqrs::Chart::new(events);
+        let events = events.iter().map(|x| Arc::new(x.clone())).collect::<Vec<_>>();
+        let mut chart = cqrs::Chart::new(events.as_slice());
 
         let reply = chart.close(id).map(|events| {
-            self.store_handle.extend(events.iter().cloned());
+            self.store_handle.extend(events.iter().map(Deref::deref).cloned());
         });
 
         self.send_reply(reply_channel, reply).await;
