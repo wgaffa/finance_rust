@@ -1,14 +1,17 @@
+use std::ops::Not;
+
 use async_trait::async_trait;
 use chrono::prelude::*;
 use futures::future::OptionFuture;
 
 use crate::{message::Responder, Message, MessageProcessor};
 use cqrs::{
-    error::{AccountError, JournalError},
+    error::{AccountError, JournalError, LedgerError},
     events::store::EventStorage,
+    write::ledger::LedgerId,
     Balance,
     Event,
-    JournalId, write::ledger::LedgerId,
+    JournalId,
 };
 use personal_finance::account::{Category, Name, Number};
 
@@ -87,6 +90,18 @@ where
 
         self.send_reply(reply_channel, reply).await;
     }
+
+    async fn process_create_ledger(&mut self, id: LedgerId, reply_channel: Responder<(), LedgerError>) {
+        let events = self.store_handle.all();
+        let reply = events.iter().any(|x| matches!(x, Event::LedgerCreated { id: source_id } if *source_id == id))
+            .not()
+            .then(
+                || self.store_handle.extend(std::iter::once(Event::LedgerCreated { id }))
+            )
+            .ok_or(LedgerError::AlreadyExists);
+
+        self.send_reply(reply_channel, reply).await;
+    }
 }
 
 #[async_trait]
@@ -114,10 +129,12 @@ where
                 self.process_journal_entry_message(description, transactions, date, reply_channel)
                     .await
             }
-            Message::CloseAccount {
-                id,
-                reply_channel,
-            } => self.process_close_account(id, reply_channel).await,
+            Message::CloseAccount { id, reply_channel } => {
+                self.process_close_account(id, reply_channel).await
+            }
+            Message::CreateLedger { id, reply_channel } => {
+                self.process_create_ledger(id, reply_channel).await
+            }
         }
     }
 }

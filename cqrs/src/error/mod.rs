@@ -12,6 +12,12 @@ pub enum AccountError {
     NotExist,
 }
 
+#[derive(Debug, PartialEq, Eq, Error)]
+pub enum LedgerError {
+    #[error("The ledger already exists")]
+    AlreadyExists
+}
+
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Eq)]
 pub enum JournalError {

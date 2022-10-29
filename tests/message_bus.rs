@@ -6,6 +6,7 @@ use tokio::{sync, task};
 use cqrs::{
     error::{AccountError, JournalError},
     events::store::InMemoryStore,
+    write::ledger::LedgerId,
 };
 use message_bus::{CommandHandler, MailboxProcessor, Message};
 use personal_finance::{
@@ -43,6 +44,10 @@ macro_rules! message {
 
     (close, $acc:expr, $rc:expr) => {
         Message::CloseAccount { id: Number::new($acc).unwrap(), reply_channel: $rc }
+    };
+
+    (ledger, $name:expr, $rc:expr) => {
+        Message::CreateLedger { id: LedgerId::new($name).unwrap(), reply_channel: $rc }
     };
 }
 
@@ -94,6 +99,32 @@ async fn add_default_account(mb: &MailboxProcessor) {
     let _ = mb.post(message!(open, 101, "Bank account", Category::Asset, None)).await;
     let _ = mb.post(message!(open, 501, "Groceries", Category::Expenses, None)).await;
     let _ = mb.post(message!(open, 401, "Salary", Category::Income, None)).await;
+}
+
+#[tokio::test]
+async fn create_a_ledger_with_unique_id_should_succeed() {
+    let mb = default_mailbox().await;
+    let (message, rx) = message_with_reply!(ledger, "2014-q2");
+
+    let result = mb.post(message).await;
+    assert!(result.is_ok());
+
+    let result = rx.await.unwrap();
+    assert_eq!(result, Ok(()));
+}
+
+#[tokio::test]
+async fn creating_a_ledger_with_same_id_should_be_an_error() {
+    let mb = default_mailbox().await;
+    let result = mb.post(message!(ledger, "2014-q2", None)).await;
+    assert!(result.is_ok());
+
+    let (message, rx) = message_with_reply!(ledger, "2014-q2");
+    let result = mb.post(message).await;
+    assert!(result.is_ok());
+
+    let result = rx.await.unwrap();
+    assert_eq!(result, Err(cqrs::error::LedgerError::AlreadyExists));
 }
 
 #[tokio::test]

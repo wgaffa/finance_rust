@@ -11,6 +11,9 @@ pub mod store;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Event {
+    LedgerCreated {
+        id: LedgerId,
+    },
     AccountOpened {
         ledger: LedgerId,
         id: Number,

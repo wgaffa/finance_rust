@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use tokio::sync;
 
-use cqrs::JournalId;
+use cqrs::{JournalId, write::ledger::LedgerId};
 use personal_finance::{
     account::{Category, Name, Number},
     balance::Balance,
@@ -26,5 +26,9 @@ pub enum Message {
     CloseAccount {
         id: Number,
         reply_channel: Responder<(), cqrs::error::AccountError>,
-    }
+    },
+    CreateLedger {
+        id: LedgerId,
+        reply_channel: Responder<(), cqrs::error::LedgerError>,
+    },
 }
