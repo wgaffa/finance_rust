@@ -2,11 +2,15 @@ use std::{collections::HashSet, ops::Not};
 
 use personal_finance::account::{Category, Name, Number};
 
-use crate::{error::AccountError, Event, Journal};
+use crate::{
+    error::{AccountError, LedgerError},
+    Event,
+    Journal,
+};
 
 /// A ledger id is a string starting with any alphanumeric character [a-zA-Z0-9]
 /// followed by any valid character in [a-zA-Z0-9_-]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LedgerId(String);
 
 impl LedgerId {
@@ -19,6 +23,45 @@ impl LedgerId {
                     .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-'))
                     .then_some(LedgerId(id.to_owned()))
             })
+    }
+}
+
+/// LedgerResolver keeps a tally on all available ledgers in the system
+#[derive(Debug, PartialEq, Eq)]
+pub struct LedgerResolver {
+    ledgers: HashSet<LedgerId>,
+    history: Vec<Event>,
+}
+
+impl LedgerResolver {
+    pub fn new(events: &[Event]) -> Self {
+        let mut ledgers = HashSet::new();
+
+        for event in events {
+            match event {
+                Event::LedgerCreated { id } => {
+                    ledgers.insert(id.clone());
+                }
+                _ => (),
+            }
+        }
+
+        Self {
+            ledgers,
+            history: events.to_vec(),
+        }
+    }
+
+    pub fn create(&mut self, id: LedgerId) -> Result<&[Event], LedgerError> {
+        self.ledgers
+            .contains(&id)
+            .not()
+            .then(|| {
+                self.ledgers.insert(id.clone());
+                self.history.push(Event::LedgerCreated { id });
+                &self.history[self.history.len() - 1..]
+            })
+            .ok_or(LedgerError::AlreadyExists)
     }
 }
 
