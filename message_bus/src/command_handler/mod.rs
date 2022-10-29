@@ -91,13 +91,20 @@ where
         self.send_reply(reply_channel, reply).await;
     }
 
-    async fn process_create_ledger(&mut self, id: LedgerId, reply_channel: Responder<(), LedgerError>) {
+    async fn process_create_ledger(
+        &mut self,
+        id: LedgerId,
+        reply_channel: Responder<(), LedgerError>,
+    ) {
         let events = self.store_handle.all();
-        let reply = events.iter().any(|x| matches!(x, Event::LedgerCreated { id: source_id } if *source_id == id))
+        let reply = events
+            .iter()
+            .any(|x| matches!(x, Event::LedgerCreated { id: source_id } if *source_id == id))
             .not()
-            .then(
-                || self.store_handle.extend(std::iter::once(Event::LedgerCreated { id }))
-            )
+            .then(|| {
+                self.store_handle
+                    .extend(std::iter::once(Event::LedgerCreated { id }))
+            })
             .ok_or(LedgerError::AlreadyExists);
 
         self.send_reply(reply_channel, reply).await;

@@ -56,10 +56,12 @@ impl Chart {
         let account_exists_and_opened = self.data.get(&number).copied().unwrap_or_default();
         account_exists_and_opened
             .then_some(())
-            .map(|()| vec![Event::AccountClosed {
-                ledger: LedgerId::new("Bogus").unwrap(),
-                account: number
-            }])
+            .map(|()| {
+                vec![Event::AccountClosed {
+                    ledger: LedgerId::new("Bogus").unwrap(),
+                    account: number,
+                }]
+            })
             .map(|issued_events| self.apply_new_events(issued_events))
             .ok_or(AccountError::Closed)
     }
@@ -70,7 +72,7 @@ impl Chart {
                 Event::AccountOpened { id, .. } => {
                     self.data.insert(*id, true);
                 }
-                Event::AccountClosed {account: id, .. } => {
+                Event::AccountClosed { account: id, .. } => {
                     self.data.entry(*id).and_modify(|x| *x = false);
                 }
                 _ => {}

@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use tokio::sync;
 
-use cqrs::{JournalId, write::ledger::LedgerId};
+use cqrs::{write::ledger::LedgerId, JournalId};
 use personal_finance::{
     account::{Category, Name, Number},
     balance::Balance,

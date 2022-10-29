@@ -1,8 +1,8 @@
 use std::{collections::HashSet, ops::Not};
 
-use personal_finance::account::{Number, Name, Category};
+use personal_finance::account::{Category, Name, Number};
 
-use crate::{Event, Journal, error::AccountError};
+use crate::{error::AccountError, Event, Journal};
 
 /// A ledger id is a string starting with any alphanumeric character [a-zA-Z0-9]
 /// followed by any valid character in [a-zA-Z0-9_-]
@@ -47,8 +47,14 @@ impl Ledger {
         ledger
     }
 
-    pub fn open_account(&mut self, number: Number, name: Name, category: Category) -> Result<&[Event], AccountError> {
-        self.chart.contains(&number)
+    pub fn open_account(
+        &mut self,
+        number: Number,
+        name: Name,
+        category: Category,
+    ) -> Result<&[Event], AccountError> {
+        self.chart
+            .contains(&number)
             .not()
             .then_some(())
             .ok_or(AccountError::Opened(number.number()))

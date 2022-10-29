@@ -96,9 +96,15 @@ async fn create_duplicate_account() {
 }
 
 async fn add_default_account(mb: &MailboxProcessor) {
-    let _ = mb.post(message!(open, 101, "Bank account", Category::Asset, None)).await;
-    let _ = mb.post(message!(open, 501, "Groceries", Category::Expenses, None)).await;
-    let _ = mb.post(message!(open, 401, "Salary", Category::Income, None)).await;
+    let _ = mb
+        .post(message!(open, 101, "Bank account", Category::Asset, None))
+        .await;
+    let _ = mb
+        .post(message!(open, 501, "Groceries", Category::Expenses, None))
+        .await;
+    let _ = mb
+        .post(message!(open, 401, "Salary", Category::Income, None))
+        .await;
 }
 
 #[tokio::test]

@@ -410,7 +410,11 @@ mod test {
             Category::Asset,
         ));
 
-        let expected = Account::new(account::Number::new(101).unwrap(), account::Name::new("Test").unwrap(), Category::Expenses);
+        let expected = Account::new(
+            account::Number::new(101).unwrap(),
+            account::Name::new("Test").unwrap(),
+            Category::Expenses,
+        );
 
         assert_eq!(actual, Some(expected));
     }
@@ -466,7 +470,11 @@ mod test {
                 account::Name::new("Credit Loan").unwrap(),
                 Category::Liability,
             ),
-            Account::new(account::Number::new(401).unwrap(), account::Name::new("Salary").unwrap(), Category::Income),
+            Account::new(
+                account::Number::new(401).unwrap(),
+                account::Name::new("Salary").unwrap(),
+                Category::Income,
+            ),
             Account::new(
                 account::Number::new(502).unwrap(),
                 account::Name::new("Phone").unwrap(),

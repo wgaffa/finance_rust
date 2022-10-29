@@ -10,7 +10,11 @@ use crate::{
 
 #[test]
 fn ledger_iter() {
-    let account = Account::new(account::Number::new(101).unwrap(), account::Name::new("test").unwrap(), Category::Asset);
+    let account = Account::new(
+        account::Number::new(101).unwrap(),
+        account::Name::new("test").unwrap(),
+        Category::Asset,
+    );
     let mut ledger = Ledger::new(&account);
 
     let transactions = vec![

@@ -117,7 +117,7 @@ impl Journal {
                 Event::AccountOpened { id, .. } => {
                     self.accounts.insert(*id);
                 }
-                Event::AccountClosed{ account: id, .. } => {
+                Event::AccountClosed { account: id, .. } => {
                     self.accounts.remove(id);
                 }
                 Event::Journal { id, .. } => self.current_id = self.current_id.max(*id),
