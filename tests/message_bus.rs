@@ -4,7 +4,7 @@ use chrono::prelude::*;
 use tokio::{sync, task};
 
 use cqrs::{
-    error::{AccountError, JournalError},
+    error::{AccountError, TransactionError},
     events::store::InMemoryStore,
     write::ledger::LedgerId,
 };
@@ -20,8 +20,9 @@ async fn default_mailbox() -> MailboxProcessor {
 }
 
 macro_rules! message {
-    (open, $id:expr, $desc:expr, $cat:expr, $rc:expr) => {
+    (open, $ledger:expr, $id:expr, $desc:expr, $cat:expr, $rc:expr) => {
         Message::CreateAccount {
+            ledger: LedgerId::new($ledger).unwrap(),
             id: Number::new($id).unwrap(),
             description: Name::new($desc).unwrap(),
             category: $cat,
@@ -29,8 +30,9 @@ macro_rules! message {
         }
     };
 
-    (entry, $desc:expr, $date:expr => { $($account:expr => $ty:ident $amount:expr),* $(,)? }, $rc:expr) => {
-        Message::JournalEntry {
+    (entry, $ledger:expr, $desc:expr, $date:expr => { $($account:expr => $ty:ident $amount:expr),* $(,)? }, $rc:expr) => {
+        Message::Transaction {
+            ledger: LedgerId::new($ledger).unwrap(),
             description: String::from($desc),
             transactions: vec![
                 $(
@@ -42,8 +44,8 @@ macro_rules! message {
         }
     };
 
-    (close, $acc:expr, $rc:expr) => {
-        Message::CloseAccount { id: Number::new($acc).unwrap(), reply_channel: $rc }
+    (close, $ledger:expr, $acc:expr, $rc:expr) => {
+        Message::CloseAccount { ledger: LedgerId::new($ledger).unwrap(), id: Number::new($acc).unwrap(), reply_channel: $rc }
     };
 
     (ledger, $name:expr, $rc:expr) => {
@@ -61,11 +63,18 @@ macro_rules! message_with_reply {
     };
 }
 
+async fn default_ledger(mb: &MailboxProcessor) {
+    let _ = mb.post(message!(ledger, "2014-q2", None)).await;
+    let _ = mb.post(message!(ledger, "2014-q3", None)).await;
+}
+
 #[tokio::test]
 async fn create_account() {
     let mb = default_mailbox().await;
+    default_ledger(&mb).await;
 
-    let (message, mut rx) = message_with_reply!(open, 101, "Bank account", Category::Asset);
+    let (message, mut rx) =
+        message_with_reply!(open, "2014-q2", 101, "Bank account", Category::Asset);
     let result = mb.post(message).await;
 
     let response = rx.await.unwrap();
@@ -77,8 +86,10 @@ async fn create_account() {
 #[tokio::test]
 async fn create_duplicate_account() {
     let mb = default_mailbox().await;
+    default_ledger(&mb);
 
-    let (message, mut rx) = message_with_reply!(open, 101, "Bank account", Category::Asset);
+    let (message, mut rx) =
+        message_with_reply!(open, "2014-q2", 101, "Bank account", Category::Asset);
     let result = mb.post(message).await;
 
     let response = rx.await.unwrap();
@@ -86,7 +97,8 @@ async fn create_duplicate_account() {
     assert!(result.is_ok());
     assert!(response.is_ok());
 
-    let (message, mut rx) = message_with_reply!(open, 101, "Duplicate account", Category::Asset);
+    let (message, mut rx) =
+        message_with_reply!(open, "2014-q2", 101, "Duplicate account", Category::Asset);
     let result = mb.post(message).await;
 
     let response = rx.await.unwrap();
@@ -95,15 +107,48 @@ async fn create_duplicate_account() {
     assert_eq!(response, Err(AccountError::Opened(101)));
 }
 
+#[tokio::test]
+async fn create_account_on_non_existing_ledger_should_error() {
+    let mb = default_mailbox().await;
+
+    let (message, rx) = message_with_reply!(open, "1973-q2", 101, "Bank account", Category::Asset);
+    let result = mb.post(message).await;
+    assert!(result.is_ok());
+
+    let result = rx.await.unwrap();
+    assert_eq!(result, Err(AccountError::LedgerDoesnExist))
+}
+
 async fn add_default_account(mb: &MailboxProcessor) {
     let _ = mb
-        .post(message!(open, 101, "Bank account", Category::Asset, None))
+        .post(message!(
+            open,
+            "2014-q2",
+            101,
+            "Bank account",
+            Category::Asset,
+            None
+        ))
         .await;
     let _ = mb
-        .post(message!(open, 501, "Groceries", Category::Expenses, None))
+        .post(message!(
+            open,
+            "2014-q2",
+            501,
+            "Groceries",
+            Category::Expenses,
+            None
+        ))
         .await;
     let _ = mb
-        .post(message!(open, 401, "Salary", Category::Income, None))
+        .post(message!(
+            open,
+            "2014-q2",
+            401,
+            "Salary",
+            Category::Income,
+            None
+        ))
         .await;
 }
 
@@ -138,7 +183,7 @@ async fn creating_an_entry_should_increase_its_id_counter() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (message, mut rx) = message_with_reply!(entry, "Grocery Shopping", Utc::now().date() => {
+    let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Grocery Shopping", Utc::now().date() => {
         101 => credit 150,
         501 => debit 150,
     });
@@ -148,9 +193,9 @@ async fn creating_an_entry_should_increase_its_id_counter() {
 
     let result = rx.await.unwrap();
 
-    assert_eq!(result, Ok(1));
+    assert_eq!(result, Ok(()));
 
-    let (message, mut rx) = message_with_reply!(entry, "Salary", Utc::now().date() => {
+    let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Salary", Utc::now().date() => {
         101 => debit 10_000,
         401 => credit 10_000,
     });
@@ -159,7 +204,7 @@ async fn creating_an_entry_should_increase_its_id_counter() {
     assert!(result.is_ok());
 
     let result = rx.await.unwrap();
-    assert_eq!(result, Ok(2));
+    assert_eq!(result, Ok(()));
 }
 
 #[tokio::test]
@@ -167,7 +212,7 @@ async fn adding_a_transaction_to_a_non_existing_account_should_be_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (message, mut rx) = message_with_reply!(entry, "Grocery shopping", Utc::now().date() => {
+    let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Grocery shopping", Utc::now().date() => {
         101 => credit 150,
         601 => debit 150,
     });
@@ -176,7 +221,7 @@ async fn adding_a_transaction_to_a_non_existing_account_should_be_an_error() {
     assert!(result.is_ok());
 
     let response = rx.await.unwrap();
-    assert_eq!(response, Err(JournalError::InvalidTransaction))
+    assert_eq!(response, Err(TransactionError::AccountDoesntExist))
 }
 
 #[tokio::test]
@@ -184,7 +229,7 @@ async fn adding_no_transactions_to_an_entry_should_give_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (message, mut rx) = message_with_reply!(entry, "Grocery shopping", Utc::now().date() => {
+    let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Grocery shopping", Utc::now().date() => {
         // empty transactions
     });
     let result = mb.post(message).await;
@@ -192,7 +237,7 @@ async fn adding_no_transactions_to_an_entry_should_give_an_error() {
     assert!(result.is_ok());
 
     let response = rx.await.unwrap();
-    assert_eq!(response, Err(JournalError::EmptyTransaction))
+    assert_eq!(response, Err(TransactionError::EmptyTransaction))
 }
 
 #[tokio::test]
@@ -200,7 +245,7 @@ async fn closing_an_account_twice_should_give_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
 
-    let (message, mut rx) = message_with_reply!(close, 101);
+    let (message, mut rx) = message_with_reply!(close, "2014-q2", 101);
     let result = mb.post(message).await;
 
     assert!(result.is_ok());
@@ -208,21 +253,21 @@ async fn closing_an_account_twice_should_give_an_error() {
     let response = rx.await.unwrap();
     assert_eq!(response, Ok(()));
 
-    let (message, mut rx) = message_with_reply!(close, 101);
+    let (message, mut rx) = message_with_reply!(close, "2014-q2", 101);
     let result = mb.post(message).await;
 
     assert!(result.is_ok());
 
     let response = rx.await.unwrap();
-    assert_eq!(response, Err(AccountError::Closed));
+    assert_eq!(response, Err(AccountError::NotExist));
 }
 
 #[tokio::test]
 async fn closing_a_non_existent_account_should_give_an_error() {
     let mb = default_mailbox().await;
 
-    let (message, mut rx) = message_with_reply!(close, 101);
+    let (message, mut rx) = message_with_reply!(close, "2014-q2", 101);
     let result = mb.post(message).await;
     let response = rx.await.unwrap();
-    assert_eq!(response, Err(AccountError::Closed));
+    assert_eq!(response, Err(AccountError::NotExist));
 }

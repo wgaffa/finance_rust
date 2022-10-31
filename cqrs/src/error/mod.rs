@@ -10,6 +10,8 @@ pub enum AccountError {
     Closed,
     #[error("Account doesn't exist.")]
     NotExist,
+    #[error("That ledger doesn't exist")]
+    LedgerDoesnExist,
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
@@ -20,24 +22,20 @@ pub enum LedgerError {
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Eq)]
-pub enum JournalError {
-    JournalLimitReached,
+pub enum TransactionError {
     ImbalancedTranasactions,
     EmptyTransaction,
-    NoJournalEvent,
-    InvalidTransaction,
+    AccountDoesntExist,
 }
 
-impl fmt::Display for JournalError {
+impl fmt::Display for TransactionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::JournalLimitReached => f.write_str("The maximum journal id exceeded"),
             Self::ImbalancedTranasactions => {
                 f.write_str("The balance of the transactions does not equal zero")
             }
             Self::EmptyTransaction => f.write_str("A journal must have atleast one transaction"),
-            Self::NoJournalEvent => f.write_str("No journal event in the stream"),
-            Self::InvalidTransaction => f.write_str("The transaction was not valid"),
+            Self::AccountDoesntExist => f.write_str("Could not add a transaction to specified account"),
         }
     }
 }

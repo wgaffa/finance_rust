@@ -12,18 +12,21 @@ pub type Responder<T, E> = Option<sync::oneshot::Sender<Result<T, E>>>;
 #[derive(Debug)]
 pub enum Message {
     CreateAccount {
+        ledger: LedgerId,
         id: Number,
         description: Name,
         category: Category,
         reply_channel: Responder<(), cqrs::error::AccountError>,
     },
-    JournalEntry {
+    Transaction {
+        ledger: LedgerId,
         description: String,
         transactions: Vec<(Number, Balance)>,
         date: Date<Utc>,
-        reply_channel: Responder<JournalId, cqrs::error::JournalError>,
+        reply_channel: Responder<(), cqrs::error::TransactionError>,
     },
     CloseAccount {
+        ledger: LedgerId,
         id: Number,
         reply_channel: Responder<(), cqrs::error::AccountError>,
     },

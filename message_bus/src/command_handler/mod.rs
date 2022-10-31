@@ -6,7 +6,7 @@ use futures::future::OptionFuture;
 
 use crate::{message::Responder, Message, MessageProcessor};
 use cqrs::{
-    error::{AccountError, JournalError, LedgerError},
+    error::{AccountError, TransactionError, LedgerError},
     events::store::EventStorage,
     write::ledger::LedgerId,
     Balance,
@@ -38,54 +38,49 @@ where
 
     async fn process_create_account_message(
         &mut self,
+        ledger: LedgerId,
         id: Number,
         description: Name,
         category: Category,
         reply_channel: Responder<(), AccountError>,
     ) {
-        let events = self.store_handle.all();
-        let mut ledger = cqrs::Ledger::new(LedgerId::new("2014-q2").unwrap(), events);
+        let events = self.store_handle.all().iter().cloned().map(Arc::new).collect::<Vec<_>>();
+        let mut ledger = cqrs::Ledger::new(ledger, events.as_slice());
         let entry = ledger.open_account(id, description, category);
 
-        let entry = entry.map(|events| self.store_handle.extend(events.iter().cloned()));
+        let entry = entry.map(|events| self.store_handle.extend(events.iter().map(|x| x.deref().clone())));
         self.send_reply(reply_channel, entry).await;
     }
 
-    async fn process_journal_entry_message(
+    async fn process_transaction_message(
         &mut self,
+        ledger: LedgerId,
         description: String,
         transactions: Vec<(Number, Balance)>,
         date: Date<Utc>,
-        reply_channel: Responder<JournalId, JournalError>,
+        reply_channel: Responder<(), TransactionError>,
     ) {
-        let events = self.store_handle.all();
-        let mut journal = cqrs::Journal::new(events);
-        let entry = journal.entry(description, &transactions, date);
+        let events = self.store_handle.all().iter().cloned().map(Arc::new).collect::<Vec<_>>();
+        let mut ledger = cqrs::Ledger::new(ledger, &events);
+        let entry = ledger.transaction(description, &transactions, date)
+            .map(|event| {
+                self.store_handle.extend(events.iter().map(Deref::deref).cloned());
+            });
 
-        let entry = entry.and_then(|events| {
-            if let Some(cqrs::Event::Journal { id, .. }) = events
-                .iter()
-                .find(|e| matches!(e, cqrs::Event::Journal { .. }))
-            {
-                self.store_handle.extend(events.iter().cloned());
-                Ok(*id)
-            } else {
-                Err(JournalError::NoJournalEvent)
-            }
-        });
         self.send_reply(reply_channel, entry).await;
     }
 
     async fn process_close_account(
         &mut self,
+        ledger: LedgerId,
         id: Number,
         reply_channel: Responder<(), AccountError>,
     ) {
         let events = self.store_handle.all();
         let events = events.iter().map(|x| Arc::new(x.clone())).collect::<Vec<_>>();
-        let mut chart = cqrs::Chart::new(events.as_slice());
+        let mut ledger = cqrs::Ledger::new(ledger, events.as_slice());
 
-        let reply = chart.close(id).map(|events| {
+        let reply = ledger.close_account(id).map(|events| {
             self.store_handle.extend(events.iter().map(Deref::deref).cloned());
         });
 
@@ -118,25 +113,27 @@ where
     async fn process_message(&mut self, message: Message) {
         match message {
             Message::CreateAccount {
+                ledger,
                 id,
                 description,
                 category,
                 reply_channel,
             } => {
-                self.process_create_account_message(id, description, category, reply_channel)
+                self.process_create_account_message(ledger, id, description, category, reply_channel)
                     .await
             }
-            Message::JournalEntry {
+            Message::Transaction {
+                ledger,
                 description,
                 transactions,
                 date,
                 reply_channel,
             } => {
-                self.process_journal_entry_message(description, transactions, date, reply_channel)
+                self.process_transaction_message(ledger, description, transactions, date, reply_channel)
                     .await
             }
-            Message::CloseAccount { id, reply_channel } => {
-                self.process_close_account(id, reply_channel).await
+            Message::CloseAccount { ledger, id, reply_channel } => {
+                self.process_close_account(ledger, id, reply_channel).await
             }
             Message::CreateLedger { id, reply_channel } => {
                 self.process_create_ledger(id, reply_channel).await

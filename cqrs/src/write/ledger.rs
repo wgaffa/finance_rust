@@ -1,11 +1,19 @@
-use std::{collections::HashSet, ops::Not};
+use chrono::prelude::*;
+use std::{
+    collections::HashSet,
+    ops::{Deref, Not},
+    sync::Arc,
+};
 
-use personal_finance::account::{Category, Name, Number};
+use personal_finance::{
+    account::{Category, Name, Number},
+    balance::Balance,
+};
 
 use crate::{
-    error::{AccountError, LedgerError},
+    error::{AccountError, LedgerError, TransactionError},
+    events::EventPointer,
     Event,
-    Journal,
 };
 
 /// A ledger id is a string starting with any alphanumeric character [a-zA-Z0-9]
@@ -27,7 +35,7 @@ impl LedgerId {
 }
 
 /// LedgerResolver keeps a tally on all available ledgers in the system
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct LedgerResolver {
     ledgers: HashSet<LedgerId>,
     history: Vec<Event>,
@@ -63,27 +71,24 @@ impl LedgerResolver {
             })
             .ok_or(LedgerError::AlreadyExists)
     }
+
+    pub fn get<T: AsRef<str>>(&self, id: T) -> Option<LedgerId> {
+        todo!()
+    }
 }
 
 pub struct Ledger {
     id: LedgerId,
     chart: HashSet<Number>,
-    journal: Journal,
-    history: Vec<Event>,
+    history: Vec<EventPointer>,
 }
 
 impl Ledger {
-    pub fn new(id: LedgerId, events: &[Event]) -> Self {
+    pub fn new(id: LedgerId, events: &[EventPointer]) -> Self {
         let chart = Default::default();
-        let journal = Journal::default();
         let history = events.to_vec();
 
-        let mut ledger = Ledger {
-            id,
-            chart,
-            journal,
-            history,
-        };
+        let mut ledger = Ledger { id, chart, history };
 
         ledger.apply(&events);
 
@@ -95,50 +100,129 @@ impl Ledger {
         number: Number,
         name: Name,
         category: Category,
-    ) -> Result<&[Event], AccountError> {
+    ) -> Result<&[EventPointer], AccountError> {
         self.chart
             .contains(&number)
             .not()
             .then_some(())
             .ok_or(AccountError::Opened(number.number()))
             .map(|_| {
-                vec![Event::AccountOpened {
+                vec![Arc::new(Event::AccountOpened {
                     ledger: self.id.clone(),
                     id: number,
                     name,
                     category,
-                }]
+                })]
             })
             .map(|issued_events| self.apply_new_events(issued_events))
     }
 
-    fn apply_new_events(&mut self, events: Vec<Event>) -> &[Event] {
+    pub fn close_account(&mut self, id: Number) -> Result<&[EventPointer], AccountError> {
+        self.chart
+            .contains(&id)
+            .then(|| {
+                vec![Arc::new(Event::AccountClosed {
+                    ledger: self.id.clone(),
+                    account: id,
+                })]
+            })
+            .ok_or(AccountError::NotExist)
+            .map(|issued_events| self.apply_new_events(issued_events))
+    }
+
+    fn check_balance(&self, transactions: &[(Number, Balance)]) -> Result<(), TransactionError> {
+        let mut account_exists = true;
+        let mut balance = 0;
+        let mut balance_partition = (0u32, 0u32);
+        for (number, amount) in transactions.iter() {
+            account_exists = account_exists
+                .then(|| self.chart.contains(&number))
+                .unwrap_or_default();
+
+            if !account_exists {
+                break;
+            }
+
+            balance_partition = match *amount {
+                Balance::Debit(x) => (
+                    balance_partition
+                        .0
+                        .checked_add(x.amount())
+                        .expect("Amount overflow"),
+                    balance_partition.1,
+                ),
+                Balance::Credit(x) => (
+                    balance_partition.0,
+                    balance_partition
+                        .1
+                        .checked_add(x.amount())
+                        .expect("Amount overflow"),
+                ),
+            }
+        }
+
+        let is_zero_balance = balance_partition.0 == balance_partition.1;
+        match (account_exists, is_zero_balance) {
+            (false, _) => Err(TransactionError::AccountDoesntExist),
+            (_, false) => Err(TransactionError::ImbalancedTranasactions),
+            _ => Ok(()),
+        }
+    }
+
+    pub fn transaction<T: Into<String>>(
+        &mut self,
+        description: T,
+        transactions: &[(Number, Balance)],
+        date: Date<Utc>,
+    ) -> Result<&[EventPointer], TransactionError> {
+        transactions
+            .len()
+            .gt(&0)
+            .then_some(())
+            .ok_or(TransactionError::EmptyTransaction)
+            .and_then(|()| self.check_balance(transactions))
+            .map(|_| {
+                vec![Arc::new(Event::Transaction {
+                    ledger: self.id.clone(),
+                    description: description.into(),
+                    date,
+                    transactions: transactions.to_vec(),
+                })]
+            })
+            .map(|events| {
+                self.apply(&events);
+                let len = self.history.len();
+                self.history.extend(events);
+                len
+            })
+            .map(|len| &self.history[len..])
+    }
+
+    fn apply_new_events(&mut self, events: Vec<EventPointer>) -> &[EventPointer] {
         let len = events.len();
         self.apply(&events);
         self.history.extend(events);
 
-        let index = self.history.len().checked_sub(len).unwrap_or_default();
+        let index = self.history.len().saturating_sub(len);
         &self.history[index..]
     }
 
-    fn apply(&mut self, events: &[Event]) {
+    fn apply(&mut self, events: &[EventPointer]) {
         for event in events {
-            match event {
+            match event.deref() {
                 Event::AccountOpened { ledger, id, .. } if *ledger == self.id => {
                     self.chart.insert(*id);
                 }
-                Event::AccountClosed { ledger, account } if *ledger == self.id => todo!(),
+                Event::AccountClosed { ledger, account } if *ledger == self.id => {
+                    self.chart.remove(account);
+                }
                 Event::Transaction {
                     ledger,
-                    account,
-                    amount,
-                    journal,
-                } if *ledger == self.id => todo!(),
+                    ..
+                } if *ledger == self.id => {},
                 Event::Journal {
                     ledger,
-                    id,
-                    description,
-                    date,
+                    ..
                 } if *ledger == self.id => todo!(),
                 _ => {}
             }

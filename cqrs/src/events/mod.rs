@@ -30,9 +30,9 @@ pub enum Event {
     },
     Transaction {
         ledger: LedgerId,
-        account: Number,
-        amount: Balance,
-        journal: JournalId,
+        description: String,
+        date: Date<Utc>,
+        transactions: Vec<(Number, Balance)>,
     },
     #[deprecated(note = "This will be removed and replaced with Transaction in a Ledger context")]
     Journal {
