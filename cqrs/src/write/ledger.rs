@@ -77,6 +77,7 @@ impl LedgerResolver {
     }
 }
 
+#[derive(Debug)]
 pub struct Ledger {
     id: LedgerId,
     chart: HashSet<Number>,
@@ -84,15 +85,19 @@ pub struct Ledger {
 }
 
 impl Ledger {
-    pub fn new(id: LedgerId, events: &[EventPointer]) -> Self {
-        let chart = Default::default();
-        let history = events.to_vec();
+    pub fn new(id: LedgerId, events: &[EventPointer]) -> Option<Self> {
+        events.iter().position(
+            |x| matches!(x.deref(), Event::LedgerCreated { id: ledger_id } if *ledger_id == id ),
+        )
+        .map(|index| {
+            let chart = Default::default();
+            let history = events.to_vec();
 
-        let mut ledger = Ledger { id, chart, history };
+            let mut ledger = Ledger { id, chart, history };
 
-        ledger.apply(&events);
-
-        ledger
+            ledger.apply(&events[index..]);
+            ledger
+        })
     }
 
     pub fn open_account(
@@ -132,7 +137,6 @@ impl Ledger {
 
     fn check_balance(&self, transactions: &[(Number, Balance)]) -> Result<(), TransactionError> {
         let mut account_exists = true;
-        let mut balance = 0;
         let mut balance_partition = (0u32, 0u32);
         for (number, amount) in transactions.iter() {
             account_exists = account_exists
@@ -216,14 +220,8 @@ impl Ledger {
                 Event::AccountClosed { ledger, account } if *ledger == self.id => {
                     self.chart.remove(account);
                 }
-                Event::Transaction {
-                    ledger,
-                    ..
-                } if *ledger == self.id => {},
-                Event::Journal {
-                    ledger,
-                    ..
-                } if *ledger == self.id => todo!(),
+                Event::Transaction { ledger, .. } if *ledger == self.id => {}
+                Event::Journal { ledger, .. } if *ledger == self.id => todo!(),
                 _ => {}
             }
         }

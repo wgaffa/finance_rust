@@ -21,21 +21,14 @@ pub enum LedgerError {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum TransactionError {
+    #[error("The balance of the transactions does not equal zero")]
     ImbalancedTranasactions,
+    #[error("A journal must have atleast one transaction")]
     EmptyTransaction,
+    #[error("Could not add a transaction to specified account")]
     AccountDoesntExist,
-}
-
-impl fmt::Display for TransactionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ImbalancedTranasactions => {
-                f.write_str("The balance of the transactions does not equal zero")
-            }
-            Self::EmptyTransaction => f.write_str("A journal must have atleast one transaction"),
-            Self::AccountDoesntExist => f.write_str("Could not add a transaction to specified account"),
-        }
-    }
+    #[error("That ledger doesn't exist")]
+    LedgerDoesnExist,
 }

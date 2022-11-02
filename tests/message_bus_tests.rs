@@ -86,7 +86,7 @@ async fn create_account() {
 #[tokio::test]
 async fn create_duplicate_account() {
     let mb = default_mailbox().await;
-    default_ledger(&mb);
+    default_ledger(&mb).await;
 
     let (message, mut rx) =
         message_with_reply!(open, "2014-q2", 101, "Bank account", Category::Asset);
@@ -181,6 +181,7 @@ async fn creating_a_ledger_with_same_id_should_be_an_error() {
 #[tokio::test]
 async fn creating_an_entry_should_increase_its_id_counter() {
     let mb = default_mailbox().await;
+    default_ledger(&mb).await;
     add_default_account(&mb).await;
 
     let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Grocery Shopping", Utc::now().date() => {
@@ -211,6 +212,7 @@ async fn creating_an_entry_should_increase_its_id_counter() {
 async fn adding_a_transaction_to_a_non_existing_account_should_be_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
+    default_ledger(&mb).await;
 
     let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Grocery shopping", Utc::now().date() => {
         101 => credit 150,
@@ -228,6 +230,7 @@ async fn adding_a_transaction_to_a_non_existing_account_should_be_an_error() {
 async fn adding_no_transactions_to_an_entry_should_give_an_error() {
     let mb = default_mailbox().await;
     add_default_account(&mb).await;
+    default_ledger(&mb).await;
 
     let (message, mut rx) = message_with_reply!(entry, "2014-q2", "Grocery shopping", Utc::now().date() => {
         // empty transactions
@@ -243,6 +246,7 @@ async fn adding_no_transactions_to_an_entry_should_give_an_error() {
 #[tokio::test]
 async fn closing_an_account_twice_should_give_an_error() {
     let mb = default_mailbox().await;
+    default_ledger(&mb).await;
     add_default_account(&mb).await;
 
     let (message, mut rx) = message_with_reply!(close, "2014-q2", 101);
@@ -265,6 +269,7 @@ async fn closing_an_account_twice_should_give_an_error() {
 #[tokio::test]
 async fn closing_a_non_existent_account_should_give_an_error() {
     let mb = default_mailbox().await;
+    default_ledger(&mb).await;
 
     let (message, mut rx) = message_with_reply!(close, "2014-q2", 101);
     let result = mb.post(message).await;
