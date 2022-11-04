@@ -179,7 +179,7 @@ async fn creating_a_ledger_with_same_id_should_be_an_error() {
 }
 
 #[tokio::test]
-async fn creating_an_entry_should_increase_its_id_counter() {
+async fn creating_several_transaction_should_be_ok() {
     let mb = default_mailbox().await;
     default_ledger(&mb).await;
     add_default_account(&mb).await;
