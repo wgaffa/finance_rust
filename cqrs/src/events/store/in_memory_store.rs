@@ -1,3 +1,7 @@
+use std::ops::Deref;
+
+use crate::{events::EventPointer, Event};
+
 use super::EventStorage;
 
 pub struct InMemoryStore<T> {
@@ -45,6 +49,18 @@ impl<'a, T> IntoIterator for &'a InMemoryStore<T> {
 impl<T> Default for InMemoryStore<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Extend<EventPointer> for InMemoryStore<Event> {
+    fn extend<T: IntoIterator<Item = EventPointer>>(&mut self, iter: T) {
+        self.data.extend(iter.into_iter().map(|x| x.deref().clone()))
+    }
+}
+
+impl<'a> Extend<&'a EventPointer> for InMemoryStore<Event> {
+    fn extend<T: IntoIterator<Item = &'a EventPointer>>(&mut self, iter: T) {
+        self.data.extend(iter.into_iter().map(Deref::deref).cloned())
     }
 }
 

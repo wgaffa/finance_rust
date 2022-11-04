@@ -7,7 +7,7 @@ use futures::future::OptionFuture;
 use crate::{message::Responder, Message, MessageProcessor};
 use cqrs::{
     error::{AccountError, LedgerError, TransactionError},
-    events::store::EventStorage,
+    events::{store::EventStorage, EventPointer},
     write::ledger::LedgerId,
     Balance,
     Event,
@@ -30,7 +30,7 @@ where
 
 impl<'a, T> CommandHandler<T>
 where
-    T: EventStorage<Event> + Extend<Event>,
+    T: EventStorage<Event> + Extend<EventPointer>,
 {
     async fn send_reply<U, E>(&mut self, reply_channel: Responder<U, E>, reply: Result<U, E>) {
         OptionFuture::from(reply_channel.map(|rc| async { rc.send(reply) })).await;
@@ -58,7 +58,7 @@ where
                     .open_account(id, description, category)
                     .map(|events| {
                         self.store_handle
-                            .extend(events.iter().map(|x| x.deref().clone()))
+                            .extend(events.iter().map(Arc::clone))
                     })
             });
 
@@ -87,7 +87,7 @@ where
                     .transaction(description, &transactions, date)
                     .map(|events| {
                         self.store_handle
-                            .extend(events.iter().map(Deref::deref).cloned())
+                            .extend(events.iter().map(Arc::clone))
                     })
             });
 
@@ -110,7 +110,7 @@ where
             .and_then(|mut ledger| {
                 ledger.close_account(id).map(|events| {
                     self.store_handle
-                        .extend(events.iter().map(Deref::deref).cloned())
+                        .extend(events.iter().map(Arc::clone))
                 })
             });
 
@@ -126,7 +126,7 @@ where
         let mut resolver = cqrs::write::ledger::LedgerResolver::new(&events);
 
         let reply = resolver.create(id).map(|events| {
-            self.store_handle.extend(events.iter().cloned());
+            self.store_handle.extend(events.iter().cloned().map(Arc::new));
         });
 
         self.send_reply(reply_channel, reply).await;
@@ -136,7 +136,7 @@ where
 #[async_trait]
 impl<T> MessageProcessor<Message> for CommandHandler<T>
 where
-    T: EventStorage<Event> + Extend<Event> + Send,
+    T: EventStorage<Event> + Extend<EventPointer> + Send,
 {
     async fn process_message(&mut self, message: Message) {
         match message {
