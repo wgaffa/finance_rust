@@ -193,13 +193,7 @@ impl Ledger {
                     transactions: transactions.to_vec(),
                 })]
             })
-            .map(|events| {
-                self.apply(&events);
-                let len = self.history.len();
-                self.history.extend(events);
-                len
-            })
-            .map(|len| &self.history[len..])
+            .map(|events| self.apply_new_events(events))
     }
 
     fn apply_new_events(&mut self, events: Vec<EventPointer>) -> &[EventPointer] {
