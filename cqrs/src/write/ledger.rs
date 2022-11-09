@@ -12,7 +12,7 @@ use personal_finance::{
 
 use crate::{
     error::{AccountError, LedgerError, TransactionError},
-    events::EventPointer,
+    events::{EventPointer, EventPointerType},
     Event,
 };
 
@@ -81,11 +81,11 @@ impl LedgerResolver {
 pub struct Ledger {
     id: LedgerId,
     chart: HashSet<Number>,
-    history: Vec<EventPointer>,
+    history: Vec<EventPointerType>,
 }
 
 impl Ledger {
-    pub fn new(id: LedgerId, events: &[EventPointer]) -> Option<Self> {
+    pub fn new(id: LedgerId, events: &[EventPointerType]) -> Option<Self> {
         events.iter().position(
             |x| matches!(x.deref(), Event::LedgerCreated { id: ledger_id } if *ledger_id == id ),
         )
@@ -105,14 +105,14 @@ impl Ledger {
         number: Number,
         name: Name,
         category: Category,
-    ) -> Result<&[EventPointer], AccountError> {
+    ) -> Result<&[EventPointerType], AccountError> {
         self.chart
             .contains(&number)
             .not()
             .then_some(())
             .ok_or(AccountError::Opened(number.number()))
             .map(|_| {
-                vec![Arc::new(Event::AccountOpened {
+                vec![Event::new(Event::AccountOpened {
                     ledger: self.id.clone(),
                     id: number,
                     name,
@@ -122,11 +122,11 @@ impl Ledger {
             .map(|issued_events| self.apply_new_events(issued_events))
     }
 
-    pub fn close_account(&mut self, id: Number) -> Result<&[EventPointer], AccountError> {
+    pub fn close_account(&mut self, id: Number) -> Result<&[EventPointerType], AccountError> {
         self.chart
             .contains(&id)
             .then(|| {
-                vec![Arc::new(Event::AccountClosed {
+                vec![Event::new(Event::AccountClosed {
                     ledger: self.id.clone(),
                     account: id,
                 })]
@@ -178,7 +178,7 @@ impl Ledger {
         description: T,
         transactions: &[(Number, Balance)],
         date: Date<Utc>,
-    ) -> Result<&[EventPointer], TransactionError> {
+    ) -> Result<&[EventPointerType], TransactionError> {
         transactions
             .len()
             .gt(&0)
@@ -186,7 +186,7 @@ impl Ledger {
             .ok_or(TransactionError::EmptyTransaction)
             .and_then(|()| self.check_balance(transactions))
             .map(|_| {
-                vec![Arc::new(Event::Transaction {
+                vec![Event::new(Event::Transaction {
                     ledger: self.id.clone(),
                     description: description.into(),
                     date,
@@ -196,7 +196,7 @@ impl Ledger {
             .map(|events| self.apply_new_events(events))
     }
 
-    fn apply_new_events(&mut self, events: Vec<EventPointer>) -> &[EventPointer] {
+    fn apply_new_events(&mut self, events: Vec<EventPointerType>) -> &[EventPointerType] {
         let number_of_new_events = events.len();
         self.apply(&events);
         self.history.extend(events);
@@ -205,7 +205,7 @@ impl Ledger {
         &self.history[index..]
     }
 
-    fn apply(&mut self, events: &[EventPointer]) {
+    fn apply(&mut self, events: &[EventPointerType]) {
         for event in events {
             match event.deref() {
                 Event::AccountOpened { ledger, id, .. } if *ledger == self.id => {

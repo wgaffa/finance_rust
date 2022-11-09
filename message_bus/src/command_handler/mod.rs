@@ -7,7 +7,7 @@ use futures::future::OptionFuture;
 use crate::{message::Responder, Message, MessageProcessor};
 use cqrs::{
     error::{AccountError, LedgerError, TransactionError},
-    events::{store::EventStorage, EventPointer},
+    events::{store::EventStorage, EventPointer, EventPointerType},
     write::ledger::LedgerId,
     Balance,
     Event,
@@ -30,7 +30,7 @@ where
 
 impl<'a, T> CommandHandler<T>
 where
-    T: EventStorage<Event> + Extend<EventPointer>,
+    T: EventStorage<Event> + Extend<EventPointerType>,
 {
     async fn send_reply<U, E>(&mut self, reply_channel: Responder<U, E>, reply: Result<U, E>) {
         OptionFuture::from(reply_channel.map(|rc| async { rc.send(reply) })).await;
@@ -49,7 +49,7 @@ where
             .all()
             .iter()
             .cloned()
-            .map(Arc::new)
+            .map(Event::new)
             .collect::<Vec<_>>();
         let entry = cqrs::Ledger::new(ledger, events.as_slice())
             .ok_or(AccountError::LedgerDoesnExist)
@@ -58,7 +58,7 @@ where
                     .open_account(id, description, category)
                     .map(|events| {
                         self.store_handle
-                            .extend(events.iter().map(Arc::clone))
+                            .extend(events.iter().map(<Event as EventPointer>::Pointer::<Event>::clone))
                     })
             });
 
@@ -78,7 +78,7 @@ where
             .all()
             .iter()
             .cloned()
-            .map(Arc::new)
+            .map(Event::new)
             .collect::<Vec<_>>();
         let entry = cqrs::Ledger::new(ledger, &events)
             .ok_or(TransactionError::LedgerDoesnExist)
@@ -87,7 +87,7 @@ where
                     .transaction(description, &transactions, date)
                     .map(|events| {
                         self.store_handle
-                            .extend(events.iter().map(Arc::clone))
+                            .extend(events.iter().map(<Event as EventPointer>::Pointer::<Event>::clone))
                     })
             });
 
@@ -103,14 +103,15 @@ where
         let events = self.store_handle.all();
         let events = events
             .iter()
-            .map(|x| Arc::new(x.clone()))
+            .cloned()
+            .map(Event::new)
             .collect::<Vec<_>>();
         let reply = cqrs::Ledger::new(ledger, events.as_slice())
             .ok_or(AccountError::LedgerDoesnExist)
             .and_then(|mut ledger| {
                 ledger.close_account(id).map(|events| {
                     self.store_handle
-                        .extend(events.iter().map(Arc::clone))
+                        .extend(events.iter().map(<Event as EventPointer>::Pointer::<Event>::clone))
                 })
             });
 
@@ -126,7 +127,7 @@ where
         let mut resolver = cqrs::write::ledger::LedgerResolver::new(&events);
 
         let reply = resolver.create(id).map(|events| {
-            self.store_handle.extend(events.iter().cloned().map(Arc::new));
+            self.store_handle.extend(events.iter().cloned().map(Event::new));
         });
 
         self.send_reply(reply_channel, reply).await;
@@ -136,7 +137,7 @@ where
 #[async_trait]
 impl<T> MessageProcessor<Message> for CommandHandler<T>
 where
-    T: EventStorage<Event> + Extend<EventPointer> + Send,
+    T: EventStorage<Event> + Extend<EventPointerType> + Send,
 {
     async fn process_message(&mut self, message: Message) {
         match message {

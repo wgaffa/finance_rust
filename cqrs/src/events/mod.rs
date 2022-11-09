@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, ops::Deref};
 
 use super::JournalId;
 use crate::write::ledger::LedgerId;
@@ -11,7 +11,7 @@ use personal_finance::{
 pub mod projections;
 pub mod store;
 
-pub type EventPointer = Arc<Event>;
+pub type EventPointerType = <Event as EventPointer>::Pointer<Event>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Event {
@@ -34,4 +34,18 @@ pub enum Event {
         date: Date<Utc>,
         transactions: Vec<(Number, Balance)>,
     },
+}
+
+pub trait EventPointer {
+    type Pointer<T>: Deref<Target = T>;
+
+    fn new<T>(value: T) -> Self::Pointer<T>;
+}
+
+impl EventPointer for Event {
+    type Pointer<T> = Arc<T>;
+
+    fn new<T>(value: T) -> Self::Pointer<T> {
+        Arc::new(value)
+    }
 }
