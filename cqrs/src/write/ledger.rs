@@ -221,7 +221,6 @@ impl Ledger {
                     self.chart.remove(account);
                 }
                 Event::Transaction { ledger, .. } if *ledger == self.id => {}
-                Event::Journal { ledger, .. } if *ledger == self.id => todo!(),
                 _ => {}
             }
         }
