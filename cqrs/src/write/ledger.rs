@@ -197,11 +197,11 @@ impl Ledger {
     }
 
     fn apply_new_events(&mut self, events: Vec<EventPointer>) -> &[EventPointer] {
-        let len = events.len();
+        let number_of_new_events = events.len();
         self.apply(&events);
         self.history.extend(events);
 
-        let index = self.history.len().saturating_sub(len);
+        let index = self.history.len().saturating_sub(number_of_new_events);
         &self.history[index..]
     }
 
