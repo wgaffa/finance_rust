@@ -57,8 +57,11 @@ where
                 ledger
                     .open_account(id, description, category)
                     .map(|events| {
-                        self.store_handle
-                            .extend(events.iter().map(<Event as EventPointer>::Pointer::<Event>::clone))
+                        self.store_handle.extend(
+                            events
+                                .iter()
+                                .map(<Event as EventPointer>::Pointer::<Event>::clone),
+                        )
                     })
             });
 
@@ -86,8 +89,11 @@ where
                 ledger
                     .transaction(description, &transactions, date)
                     .map(|events| {
-                        self.store_handle
-                            .extend(events.iter().map(<Event as EventPointer>::Pointer::<Event>::clone))
+                        self.store_handle.extend(
+                            events
+                                .iter()
+                                .map(<Event as EventPointer>::Pointer::<Event>::clone),
+                        )
                     })
             });
 
@@ -101,17 +107,16 @@ where
         reply_channel: Responder<(), AccountError>,
     ) {
         let events = self.store_handle.all();
-        let events = events
-            .iter()
-            .cloned()
-            .map(Event::new)
-            .collect::<Vec<_>>();
+        let events = events.iter().cloned().map(Event::new).collect::<Vec<_>>();
         let reply = cqrs::Ledger::new(ledger, events.as_slice())
             .ok_or(AccountError::LedgerDoesnExist)
             .and_then(|mut ledger| {
                 ledger.close_account(id).map(|events| {
-                    self.store_handle
-                        .extend(events.iter().map(<Event as EventPointer>::Pointer::<Event>::clone))
+                    self.store_handle.extend(
+                        events
+                            .iter()
+                            .map(<Event as EventPointer>::Pointer::<Event>::clone),
+                    )
                 })
             });
 
@@ -127,7 +132,8 @@ where
         let mut resolver = cqrs::write::ledger::LedgerResolver::new(&events);
 
         let reply = resolver.create(id).map(|events| {
-            self.store_handle.extend(events.iter().cloned().map(Event::new));
+            self.store_handle
+                .extend(events.iter().cloned().map(Event::new));
         });
 
         self.send_reply(reply_channel, reply).await;
