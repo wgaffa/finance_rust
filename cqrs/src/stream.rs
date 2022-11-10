@@ -6,16 +6,16 @@ use error_stack::{IntoReport, Report, ResultExt};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Stream {
     schema: Identifier,
-    category: Identifier,
-    id: Identifier, // Year/Month of transaction for example
+    category: Option<Identifier>,
+    id: Option<Identifier>, // Year/Month of transaction for example
 }
 
 impl Stream {
     pub fn new(schema: Identifier, category: Identifier, id: Identifier) -> Self {
         Self {
             schema,
-            category,
-            id,
+            category: Some(category),
+            id: Some(id),
         }
     }
 }
@@ -25,6 +25,7 @@ impl FromStr for Stream {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let split = s
+            .trim()
             .split('.')
             .map(|x| {
                 x.parse::<Identifier>()
@@ -34,14 +35,15 @@ impl FromStr for Stream {
             .collect::<Result<Vec<_>, Report<identifier::ParseError>>>() // This only gets the first Err variant
             .change_context(ParseError::InvalidStream)?;
 
-        let [schema, category, id] = TryInto::<[Identifier; 3]>::try_into(split)
-            .map_err(|x| error_stack::report!(ParseError::InvalidLength(x)))?;
+        let mut split = split.into_iter();
 
-        Ok(Stream {
-            schema,
-            category,
-            id,
-        })
+        let stream = Stream {
+            schema: split.next().expect("empty list, was expecting atleast one element"),
+            category: split.next(),
+            id: split.next(),
+        };
+
+        Ok(stream)
     }
 }
 
@@ -52,7 +54,7 @@ impl From<(Identifier, Identifier, Identifier)> for Stream {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseError {
     InvalidStream,
     InvalidLength(Vec<Identifier>),
@@ -75,13 +77,13 @@ impl Error for ParseError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::identifier::Identifier;
 
     use quickcheck_macros::quickcheck;
 
     #[quickcheck]
     fn parse_and_new_gives_equal_types(input: (String, String, String)) -> bool {
         let input = [input.0, input.1, input.2];
-        use crate::identifier::Identifier;
         let stream_new = input
             .iter()
             .map(Identifier::new)
@@ -91,5 +93,32 @@ mod tests {
         let stream_parse = input.join(".").parse::<Stream>().ok();
 
         stream_new == stream_parse
+    }
+
+    #[test]
+    fn parse_only_schema() {
+        let stream = "chart".parse::<Stream>().ok();
+
+        let expected = Stream {
+            schema: Identifier::new("chart").unwrap(),
+            category: None,
+            id: None,
+        };
+
+        assert_eq!(stream, Some(expected));
+    }
+
+    #[test]
+    fn parse_empty_string() {
+        let stream = "".parse::<Stream>();
+
+        assert!(stream.is_err());
+    }
+
+    #[test]
+    fn parse_non_printable_string() {
+        let stream = " \t".parse::<Stream>();
+
+        assert!(stream.is_err());
     }
 }
