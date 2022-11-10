@@ -3,7 +3,7 @@ use std::{error::Error, fmt, str::FromStr};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Identifier(String);
 
-/// Identifier is any alphanumeric character and \[_\]
+/// Identifier is any alphanumeric character and \[_-\]
 impl Identifier {
     pub fn new<T: AsRef<str>>(identifier: T) -> Option<Self> {
         let identifier = identifier.as_ref();
@@ -11,7 +11,7 @@ impl Identifier {
             return None;
         }
 
-        if identifier.chars().all(|x| x.is_alphanumeric() || x == '_') {
+        if identifier.chars().all(|x| x.is_alphanumeric() || matches!(x, '_' | '-')) {
             Some(Self(identifier.into()))
         } else {
             None

@@ -35,10 +35,16 @@ impl FromStr for Stream {
             .collect::<Result<Vec<_>, Report<identifier::ParseError>>>() // This only gets the first Err variant
             .change_context(ParseError::InvalidStream)?;
 
+        if split.len() > 3 {
+            error_stack::bail!(ParseError::InvalidLength(split))
+        }
+
         let mut split = split.into_iter();
 
         let stream = Stream {
-            schema: split.next().expect("empty list, was expecting atleast one element"),
+            schema: split
+                .next()
+                .expect("empty list, was expecting atleast one element"),
             category: split.next(),
             id: split.next(),
         };
@@ -106,6 +112,13 @@ mod tests {
         };
 
         assert_eq!(stream, Some(expected));
+    }
+
+    #[test]
+    fn parse_too_long_stream() {
+        let stream = "chart.ledger.2014-qt2.this.fails".parse::<Stream>();
+
+        assert!(stream.is_err());
     }
 
     #[test]
